@@ -8,6 +8,8 @@
 #include <autoapp/Signals/VideoSignals.hpp>
 
 #include <com_jci_aapa_objectAdapter.h>
+#include <com_jci_bucpsa_objectProxy.h>
+
 
 class AADBus : public com_jci_aapa {
  private:
@@ -44,9 +46,14 @@ class AAPA {
   VideoSignals::Pointer vs;
   sigc::connection requestFocusConnection;
   sigc::connection releaseFocusConnection;
+  sigc::connection FocusChangeConnection;
   std::shared_ptr<com_jci_aapa_objectAdapter> session_object;
   std::shared_ptr<com_jci_aapaInterface> adapter;
   AADBus *androiddbus;
+  std::shared_ptr<com_jci_bucpsa_objectProxy> bucpsa;
+  bool hasFocus;
+  bool waitsForFocus;
+
 
  public:
   explicit AAPA(VideoSignals::Pointer videosignals,
@@ -56,4 +63,6 @@ class AAPA {
   void requestFocus(VIDEO_FOCUS_REQUESTOR requestor);
   void releaseFocus(VIDEO_FOCUS_REQUESTOR requestor);
 
-};
+  void DisplayMode(uint32_t DisplayMode);
+  void FocusChange(bool focus);
+  };

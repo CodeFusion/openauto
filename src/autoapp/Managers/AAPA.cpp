@@ -55,13 +55,36 @@ AAPA::AAPA(VideoSignals::Pointer videosignals,
 
   releaseFocusConnection = vs->focusRelease.connect(sigc::mem_fun(*this, &AAPA::releaseFocus));
   requestFocusConnection = vs->focusRequest.connect(sigc::mem_fun(*this, &AAPA::requestFocus));
+  FocusChangeConnection = vs->focusChanged.connect(sigc::mem_fun(*this, &AAPA::FocusChange));
+
+  bucpsa = com_jci_bucpsa_objectProxy::create(session_connection, "com.jci.bucpsa", "/com/jci/bucpsa");
+  bucpsa->getcom_jci_bucpsaInterface()->signal_DisplayMode()->connect(sigc::mem_fun(*this, &AAPA::DisplayMode));
+
+}
+
+void AAPA::DisplayMode(uint32_t DisplayMode) {
+  // currentDisplayMode != 0 means backup camera wants the screen
+  if ((bool) DisplayMode) {
+    this->vs->focusRelease.emit(VIDEO_FOCUS_REQUESTOR::BACKUP_CAMERA);
+    if (hasFocus) {
+      this->waitsForFocus = true;
+    }
+  } else {
+    if (waitsForFocus) {
+      this->vs->focusRequest.emit(VIDEO_FOCUS_REQUESTOR::BACKUP_CAMERA);
+      waitsForFocus = false;
+    }
+  }
+}
+
+void AAPA::FocusChange(bool focus) {
+  hasFocus = focus;
 }
 
 void AAPA::requestFocus(VIDEO_FOCUS_REQUESTOR requestor) {
   adapter->signal_VideoProjectionRequestFromMD()->emit(0);
   adapter->signal_ProjectionStatusResult()->emit(true);
   vs->focusChanged.emit(true);
-
 }
 
 void AAPA::releaseFocus(VIDEO_FOCUS_REQUESTOR requestor) {
@@ -72,5 +95,6 @@ AAPA::~AAPA() {
   LOG(DEBUG) << "Stopping VideoManager";
   releaseFocusConnection.disconnect();
   requestFocusConnection.disconnect();
+  FocusChangeConnection.disconnect();
   releaseFocus(VIDEO_FOCUS_REQUESTOR::HEADUNIT);
 }
