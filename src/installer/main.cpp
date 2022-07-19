@@ -190,5 +190,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
   install_bds();
   setup_sm();
   setup_mmui();
-  configure_opera();
+  if (!checkAapaVersion()) {
+    configure_opera();
+  }
 }
