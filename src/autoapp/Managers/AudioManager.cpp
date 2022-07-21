@@ -5,6 +5,7 @@
 using AudioFocusState = aasdk::proto::enums::AudioFocusState;
 
 void AudioManagerClient::onRequestAudioFocusResult(json result, Stream *stream) {
+  std::lock_guard<std::mutex> lock(AudioMutex);
   if (result["newFocus"].get<std::string>() == "granted") {
     json activeargs = {
         {"sessionId", stream->id},
@@ -16,6 +17,7 @@ void AudioManagerClient::onRequestAudioFocusResult(json result, Stream *stream) 
 }
 
 void AudioManagerClient::onAudioFocusChange(json result, Stream *stream) {
+  std::lock_guard<std::mutex> lock(AudioMutex);
   auto focus = result["newFocus"].get<std::string>();
   if (focus == "lost") {
     stream->focus = false;
@@ -267,6 +269,7 @@ void AudioManagerClient::audioMgrRequestAudioFocus(aasdk::messenger::ChannelId c
 //      audioMgrReleaseAudioFocus(stream.second->channelId);
 //    }
 ////  }
+  std::lock_guard<std::mutex> lock(AudioMutex);
   if (streams.count(channel_id) > 0) {
     if (!streams[channel_id]->focus) {
       json args = {
@@ -302,6 +305,7 @@ void AudioManagerClient::audioMgrRequestAudioFocus(aasdk::messenger::ChannelId c
 
 void AudioManagerClient::audioMgrReleaseAudioFocus(aasdk::messenger::ChannelId channel_id) {
   LOG(INFO) << "audioMgrReleaseAudioFocus()";
+  std::lock_guard<std::mutex> lock(AudioMutex);
   if (streams.count(channel_id) > 0) {
     if (streams[channel_id]->focus) {
       json args = {{"sessionId", streams[channel_id]->id}};
