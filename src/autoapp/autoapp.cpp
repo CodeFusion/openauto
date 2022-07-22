@@ -193,7 +193,7 @@ int main(int argc, char *argv[]) {
 
   if (checkAapaVersion()) {
     LOG(DEBUG) << "Using Mazda Android Auto Video";
-    aapa = new AAPA(signals.videoSignals, session_connection);
+    aapa = new AAPA(signals.videoSignals, signals.aaSignals, session_connection);
   } else {
     LOG(DEBUG) << "Using internal Video handling";
     videoManager = new VideoManager(signals.videoSignals, session_connection);

@@ -40,9 +40,9 @@ void AADBus::SbnStatus(bool status) {
   LOG(DEBUG) << "SbnStatus " << status;
 }
 
-AAPA::AAPA(VideoSignals::Pointer videosignals,
+AAPA::AAPA(VideoSignals::Pointer videosignals, AASignals::Pointer aasignals,
            const std::shared_ptr<DBus::Connection> &session_connection) :
-    vs(std::move(videosignals)) {
+    vs(std::move(videosignals)), as(std::move(aasignals)) {
   session_connection->request_name("com.jci.aapa", DBUSCXX_NAME_FLAG_REPLACE_EXISTING);
 
   androiddbus = new AADBus(vs);
@@ -56,6 +56,8 @@ AAPA::AAPA(VideoSignals::Pointer videosignals,
   releaseFocusConnection = vs->focusRelease.connect(sigc::mem_fun(*this, &AAPA::releaseFocus));
   requestFocusConnection = vs->focusRequest.connect(sigc::mem_fun(*this, &AAPA::requestFocus));
   FocusChangeConnection = vs->focusChanged.connect(sigc::mem_fun(*this, &AAPA::FocusChange));
+  ConnectedConnection = as->connected.connect(sigc::mem_fun(*this, &AAPA::AAConnected));
+
 
   bucpsa = com_jci_bucpsa_objectProxy::create(session_connection, "com.jci.bucpsa", "/com/jci/bucpsa");
   bucpsa->getcom_jci_bucpsaInterface()->signal_DisplayMode()->connect(sigc::mem_fun(*this, &AAPA::DisplayMode));
@@ -64,7 +66,7 @@ AAPA::AAPA(VideoSignals::Pointer videosignals,
 
 void AAPA::DisplayMode(uint32_t DisplayMode) {
   // currentDisplayMode != 0 means backup camera wants the screen
-  if ((bool) DisplayMode) {
+  if ((bool) DisplayMode && _connected) {
     this->vs->focusRelease.emit(VIDEO_FOCUS_REQUESTOR::BACKUP_CAMERA);
     if (hasFocus) {
       this->waitsForFocus = true;
@@ -97,4 +99,7 @@ AAPA::~AAPA() {
   requestFocusConnection.disconnect();
   FocusChangeConnection.disconnect();
   releaseFocus(VIDEO_FOCUS_REQUESTOR::HEADUNIT);
+}
+void AAPA::AAConnected(bool connected) {
+  _connected = connected;
 }
