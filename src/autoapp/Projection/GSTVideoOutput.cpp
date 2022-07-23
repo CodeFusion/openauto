@@ -49,8 +49,9 @@ void GSTVideoOutput::spawn_gst() {
   char *const launch[] = {
       (char *) "sh",
       (char *) "-c",
-      (char *) "gst-launch fdsrc fd=0 timeout=1000 do-timestamp=true ! queue max-size-buffers=600 ! h264parse " \
-      "! vpudec low-latency=true framedrop=true framedrop-level-mask=0x200 frame-plus=1 "\
+      (char *) "gst-launch fdsrc fd=0 timeout=1000 do-timestamp=true ! queue " \
+      "! capsfilter caps=video/x-h264,framerate=30 " \
+      "! vpudec low-latency=true framedrop=true framedrop-level-mask=0x200 frame-plus=2 "\
       "!  mfw_v4lsink name=aavideo 2>&1",
       nullptr};
 
@@ -63,7 +64,7 @@ void GSTVideoOutput::spawn_gst() {
       (char *) "XDG_RUNTIME_DIR=/tmp",
       (char *) "SHELL=/bin/sh",
       (char *) "PWD=/tmp/root",
-      (char *) "GST_PLUGIN_PATH=/mnt/data_persist/dev/bin/headunit_libs:/usr/lib/gstreamer-0.10",
+      (char *) "GST_PLUGIN_PATH=/usr/lib/gstreamer-0.10",
       nullptr
   };
 
@@ -91,11 +92,6 @@ bool GSTVideoOutput::open() {
   std::ofstream ofs("/proc/sys/vm/drop_caches");
   ofs << "3" << std::endl;
 
-  if (CheckReverse()) {
-    running = true;
-    return true;
-  }
-
   if (gstpid == -1) {
     spawn_gst();
 
@@ -113,14 +109,6 @@ bool GSTVideoOutput::init() {
 
 void GSTVideoOutput::write(__attribute__((unused)) uint64_t timestamp,
                            const aasdk::common::DataConstBuffer &buf) {
-  if (CheckReverse()) {
-    running = true;
-    stop();
-  } else {
-    if (running && gstpid == -1) {
-      open();
-    }
-  }
   if (gstpid != -1) {
     fwrite(buf.cdata, sizeof(buf.cdata[0]), buf.size, gst_file);
   }
@@ -134,20 +122,6 @@ void GSTVideoOutput::stop() {
     close(p_stdin[1]);
     sd->close();
   }
-}
-
-bool GSTVideoOutput::CheckReverse() {
-  bool reverse = false;
-  char gpio_value[3];
-  FILE *fd = fopen("/sys/class/gpio/Reverse/value", "r");
-  if (fd == nullptr) {
-    LOG(ERROR) << "Failed to open Reverse gpio value for reading";
-  } else {
-    fread(gpio_value, 1, 2, fd);
-    reverse = (gpio_value[0] == '0');
-  }
-  fclose(fd);
-  return reverse;
 }
 
 GSTVideoOutput::~GSTVideoOutput() = default;
