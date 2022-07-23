@@ -203,6 +203,7 @@ void VideoService::sendVideoFocusIndication() {
 
 void VideoService::sendVideoFocusLost() {
   LOG(INFO) << "[VideoService] video focus indication.";
+  videoOutput_->stop();
 
   aasdk::proto::messages::VideoFocusIndication videoFocusIndication;
   videoFocusIndication.set_focus_mode(aasdk::proto::enums::VideoFocusMode::UNFOCUSED);
