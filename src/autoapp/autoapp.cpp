@@ -188,8 +188,11 @@ int main(int argc, char *argv[]) {
   std::shared_ptr<DBus::Connection> system_connection = dispatcher->create_connection(DBus::BusType::SYSTEM);
 
   AudioManagerClient audioManager(signals.audioSignals, system_connection);
+
+  //Define thise here, to prevent them from falling out-of-scope outside the if statements.
   AAPA *aapa;
   VideoManager *videoManager;
+  HttpManager *httpManager;
 
   if (checkAapaVersion()) {
     LOG(DEBUG) << "Using Mazda Android Auto Video";
@@ -197,10 +200,10 @@ int main(int argc, char *argv[]) {
   } else {
     LOG(DEBUG) << "Using internal Video handling";
     videoManager = new VideoManager(signals.videoSignals, session_connection);
+    httpManager = new HttpManager(signals.videoSignals, signals.aaSignals);
   }
 
   GPSManager gpsManager(signals.gpsSignals, system_connection);
-  HttpManager httpManager(signals.videoSignals, signals.aaSignals);
   NavigationManager navigationManager(signals.navSignals, system_connection);
 
   aasdk::tcp::TCPWrapper tcpWrapper;
