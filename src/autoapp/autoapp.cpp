@@ -193,7 +193,7 @@ int main(int argc, char *argv[]) {
 
   if (checkAapaVersion()) {
     LOG(DEBUG) << "Using Mazda Android Auto Video";
-    aapa = new AAPA(signals.videoSignals, session_connection);
+    aapa = new AAPA(signals.videoSignals, signals.aaSignals, session_connection);
   } else {
     LOG(DEBUG) << "Using internal Video handling";
     videoManager = new VideoManager(signals.videoSignals, session_connection);
@@ -237,7 +237,7 @@ int main(int argc, char *argv[]) {
   }
 
   signals.audioSignals->focusRelease.emit(aasdk::messenger::ChannelId::MEDIA_AUDIO);
-  signals.videoSignals->focusRelease.emit(VIDEO_FOCUS_REQUESTOR::HEADUNIT);
+  signals.videoSignals->focusRelease.emit();
   sleep(2);
 //  signals.aaSignals->shutdown.emit();
 //
