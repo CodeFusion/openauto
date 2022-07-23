@@ -34,6 +34,8 @@ void backup(const fs::path &path) {
 }
 
 void install_bds() {
+  /// Configure BDS so that Android Auto can connect to our Bluetooth service to get the WiFi settings
+
   backup("/jci/bds/BdsConfiguration.xml");
 
   tinyxml2::XMLDocument doc;
@@ -72,6 +74,8 @@ void install_bds() {
 }
 
 bool checkAapaVersion() {
+  /// Check if CMU Firmware already has Android Auto built in.
+
   mINI::INIFile file("/jci/version.ini");
   mINI::INIStructure ini;
   file.read(ini);
@@ -79,6 +83,8 @@ bool checkAapaVersion() {
 }
 
 void setup_sm() {
+  /// Configure SM to start autoapp on boot.
+
   backup("/jci/sm/sm.conf");
 
   tinyxml2::XMLDocument doc;
@@ -137,6 +143,9 @@ void setup_sm() {
 }
 
 void setup_mmui() {
+  /// Setup the MMUI configuration.
+  /// We need to increase the priority of androidauto in MMUI, so that it doesn't loose video focus to phone calls
+
   backup("/jci/mmui/mmui_config.xml");
 
   tinyxml2::XMLDocument doc;
@@ -158,6 +167,8 @@ void setup_mmui() {
 }
 
 void configure_opera() {
+  /// Configure Opera settings for Android Auto if not using a version of CMU Firmware that has it built in.
+
   backup("/jci/opera/opera_home/opera.ini");
 
   mINI::INIFile file("/jci/opera/opera_home/opera.ini");
