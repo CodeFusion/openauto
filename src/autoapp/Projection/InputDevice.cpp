@@ -65,6 +65,7 @@ void InputDevice::audio_focus(aasdk::messenger::ChannelId channel_id, aasdk::pro
 }
 
 void InputDevice::video_focus(bool state) {
+  LOG(DEBUG) << "video_focus " << state;
   videoFocus_ = state;
   if (videoFocus_) {
     if (keyboard_dev != nullptr) {
@@ -283,9 +284,9 @@ void InputDevice::handle_key(input_event *ev) {
             return;
           case ButtonCode::BACK: // We use both these buttons for releasing focus, so fall through to the next case.
           case ButtonCode::CALL_END:LOG(DEBUG) << "Release Video Focus";
-            videosignals_->focusRelease.emit(VIDEO_FOCUS_REQUESTOR::HEADUNIT);
+            videosignals_->focusRelease.emit();
             return;
-          case ButtonCode::HOME:videosignals_->focusRequest.emit(VIDEO_FOCUS_REQUESTOR::HEADUNIT);
+          case ButtonCode::HOME:videosignals_->focusRequest.emit();
             return;
           default:break;
         }

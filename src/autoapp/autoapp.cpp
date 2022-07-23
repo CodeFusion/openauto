@@ -237,7 +237,7 @@ int main(int argc, char *argv[]) {
   }
 
   signals.audioSignals->focusRelease.emit(aasdk::messenger::ChannelId::MEDIA_AUDIO);
-  signals.videoSignals->focusRelease.emit(VIDEO_FOCUS_REQUESTOR::HEADUNIT);
+  signals.videoSignals->focusRelease.emit();
   sleep(2);
 //  signals.aaSignals->shutdown.emit();
 //

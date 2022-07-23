@@ -26,8 +26,8 @@ class VideoManager {
   explicit VideoManager(VideoSignals::Pointer videosignals, const std::shared_ptr<DBus::Connection> &);
   ~VideoManager();
 
-  void requestFocus(VIDEO_FOCUS_REQUESTOR requestor);
-  void releaseFocus(VIDEO_FOCUS_REQUESTOR requestor);
+  void requestFocus();
+  void releaseFocus();
 
   enum SURFACES {
     NNG_NAVI_ID = 0,

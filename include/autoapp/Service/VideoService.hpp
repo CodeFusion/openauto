@@ -57,19 +57,19 @@ class VideoService
   void onVideoFocusRequest(const aasdk::proto::messages::VideoFocusRequest &request) override;
   void onChannelError(const aasdk::error::Error &e) override;
 
-  VideoSignals::Pointer videoSignals_;
 
  private:
   using std::enable_shared_from_this<VideoService>::shared_from_this;
-  void sendVideoFocusIndication(VIDEO_FOCUS_REQUESTOR requestor);
-  void sendVideoFocusLost(VIDEO_FOCUS_REQUESTOR requestor);
+  void sendVideoFocusIndication();
+  void sendVideoFocusLost();
+
+  VideoSignals::Pointer videoSignals_;
 
   asio::io_service::strand strand_;
   aasdk::channel::av::VideoServiceChannel::Pointer channel_;
   projection::IVideoOutput::Pointer videoOutput_;
   int32_t session_;
-  sigc::connection focusRequest;
-  sigc::connection focusRelease;
+  sigc::connection focusChanged;
 };
 
 }

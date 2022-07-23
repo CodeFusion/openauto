@@ -12,7 +12,7 @@ enum class VIDEO_FOCUS_REQUESTOR : uint8_t {
 class VideoSignals : public sigc::trackable {
  public:
   typedef std::shared_ptr<VideoSignals> Pointer;
-  using type_signal_focus = sigc::signal<void(VIDEO_FOCUS_REQUESTOR)>;
+  using type_signal_focus = sigc::signal<void(void)>;
   type_signal_focus focusRequest;
   type_signal_focus focusRelease;
   sigc::signal<void(bool)> focusChanged;

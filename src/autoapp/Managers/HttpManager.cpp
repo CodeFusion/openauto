@@ -44,7 +44,7 @@ HttpManager::HttpManager(VideoSignals::Pointer videosignals, AASignals::Pointer 
 
         response->write(SimpleWeb::StatusCode::success_ok, header);
 
-        videosignals_->focusRequest.emit(VIDEO_FOCUS_REQUESTOR::HEADUNIT);
+        videosignals_->focusRequest.emit();
 
         LOG(DEBUG) << "Got /takeVideoFocus call.";
       };

@@ -54,8 +54,6 @@ class AAPA {
   std::shared_ptr<com_jci_aapaInterface> adapter;
   AADBus *androiddbus;
   std::shared_ptr<com_jci_bucpsa_objectProxy> bucpsa;
-  bool hasFocus;
-  bool waitsForFocus;
   bool _connected = false;
 
 
@@ -64,10 +62,9 @@ class AAPA {
                 const std::shared_ptr<DBus::Connection> &session_connection);
   ~AAPA();
 
-  void requestFocus(VIDEO_FOCUS_REQUESTOR requestor);
-  void releaseFocus(VIDEO_FOCUS_REQUESTOR requestor);
+  void requestFocus();
+  void releaseFocus();
 
   void DisplayMode(uint32_t DisplayMode);
-  void FocusChange(bool focus);
   void AAConnected(bool connected);
   };
