@@ -9,4 +9,5 @@
 *.cpp text
 *.xml text
 *.txt text
-*.sh text
+*.sh text eol=lf
+dataRetrieval_config.txt text eol=lf
