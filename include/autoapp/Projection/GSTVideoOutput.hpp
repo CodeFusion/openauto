@@ -4,6 +4,10 @@
 #include <autoapp/Projection/IVideoOutput.hpp>
 #include <thread>
 #include <asio.hpp>
+#include <mutex>
+#include <autoapp/Signals/VideoSignals.hpp>
+
+
 
 #ifndef ASPECT_RATIO_FIX
 #define ASPECT_RATIO_FIX 1
@@ -45,6 +49,9 @@ class GSTVideoOutput : public IVideoOutput {
   asio::streambuf buffer;
   asio::posix::stream_descriptor *sd = nullptr;
   bool running;
+  std::mutex VideoMutex;
+
+
 
   void message_handler(asio::error_code ec, size_t bytes_transferred);
 

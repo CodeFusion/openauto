@@ -85,10 +85,6 @@ void startIOServiceWorkers(asio::io_service &ioService, ThreadPool &threadPool) 
   threadPool.emplace_back(ioServiceWorker);
   threadPool.emplace_back(ioServiceWorker);
   threadPool.emplace_back(ioServiceWorker);
-  threadPool.emplace_back(ioServiceWorker);
-  threadPool.emplace_back(ioServiceWorker);
-  threadPool.emplace_back(ioServiceWorker);
-  threadPool.emplace_back(ioServiceWorker);
 }
 
 INITIALIZE_EASYLOGGINGPP

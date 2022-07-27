@@ -30,22 +30,6 @@ void GSTVideoOutput::message_handler(asio::error_code ec, size_t bytes_transferr
 
 void GSTVideoOutput::spawn_gst() {
   posix_spawn_file_actions_t fa;
-
-  if (pipe2(p_stdin, O_CLOEXEC) || pipe2(p_stdout, O_CLOEXEC) != 0) return;
-  gst_file = fdopen(p_stdin[1], "w");
-
-
-  /* If the child's end of the pipe happens to already be on the final
-   * fd number to which it will be assigned (either 0 or 1), it must
-   * be moved to a different fd. Otherwise, there is no safe way to
-   * remove the close-on-exec flag in the child without also creating
-   * a file descriptor leak race condition in the parent. */
-  if (p_stdin[0] == 0) {
-    int tmp = fcntl(F_DUPFD_CLOEXEC, 0, 0);
-    close(p_stdin[0]);
-    p_stdin[0] = tmp;
-  }
-
   char *const launch[] = {
       (char *) "sh",
       (char *) "-c",
@@ -93,6 +77,21 @@ bool GSTVideoOutput::open() {
   ofs << "3" << std::endl;
 
   if (gstpid == -1) {
+
+    if (pipe2(p_stdin, O_CLOEXEC) || pipe2(p_stdout, O_CLOEXEC) != 0) return false;
+
+
+    /* If the child's end of the pipe happens to already be on the final
+     * fd number to which it will be assigned (either 0 or 1), it must
+     * be moved to a different fd. Otherwise, there is no safe way to
+     * remove the close-on-exec flag in the child without also creating
+     * a file descriptor leak race condition in the parent. */
+    if (p_stdin[0] == 0) {
+      int tmp = fcntl(F_DUPFD_CLOEXEC, 0, 0);
+      close(p_stdin[0]);
+      p_stdin[0] = tmp;
+    }
+    fcntl(p_stdin[1], F_SETPIPE_SZ, 1048576);
     spawn_gst();
 
     sd = new asio::posix::stream_descriptor(ioService_, p_stdout[0]);
@@ -109,16 +108,13 @@ bool GSTVideoOutput::init() {
 
 void GSTVideoOutput::write(__attribute__((unused)) uint64_t timestamp,
                            const aasdk::common::DataConstBuffer &buf) {
-  if (gstpid != -1) {
-    fwrite(buf.cdata, sizeof(buf.cdata[0]), buf.size, gst_file);
-  }
+    ::write(p_stdin[1], buf.cdata, buf.size);
 }
 
 void GSTVideoOutput::stop() {
   if (gstpid != -1) {
     kill(gstpid, SIGTERM);
     gstpid = -1;
-    fclose(gst_file);
     close(p_stdin[1]);
     sd->close();
   }
