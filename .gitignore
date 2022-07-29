@@ -6,3 +6,7 @@ build/
 openauto.ini
 CMakeLists.txt.user
 cmake-build-*/
+.idea/
+temp/
+installer/openauto_installer.run
+.clion*
