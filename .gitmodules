@@ -16,6 +16,3 @@
 [submodule "external/openauto-mazda-build"]
 	path = external/openauto-mazda-build
 	url = https://github.com/silverchris/openauto-mazda-build.git
-[submodule "external\\openauto-mazda-build"]
-	path = external\\openauto-mazda-build
-	url = https://github.com/silverchris/openauto-mazda-build.git
