@@ -31,6 +31,7 @@ find_package(OpenSSL REQUIRED)
 find_package(ALSA REQUIRED)
 find_package(PkgConfig REQUIRED)
 find_package(asio REQUIRED)
+find_package(fdk-aac REQUIRED)
 pkg_check_modules(DBUS REQUIRED "dbus-cxx-2.0")
 pkg_check_modules(SIGC++ REQUIRED sigc++-3.0)
 find_package(libusb-1.0 REQUIRED)
@@ -157,6 +158,7 @@ target_link_libraries(autoapp
         ${OPENSSL_LIBRARIES}
         ${LIBEVDEV_LIBRARIES}
         ${DBUS_LIBRARIES}
+        fdk-aac
         simple-web-server
         nlohmann_json::nlohmann_json
         easylogging++

@@ -78,6 +78,7 @@ class AudioService
   using std::enable_shared_from_this<AudioService>::shared_from_this;
 
   asio::io_service::strand strand_;
+  asio::io_service::strand WriterStrand;
   aasdk::channel::av::IAudioServiceChannel::Pointer channel_;
   projection::IAudioOutput::Pointer audioOutput_;
   int32_t session_;

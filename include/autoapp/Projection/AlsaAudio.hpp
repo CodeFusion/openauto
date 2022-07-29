@@ -25,6 +25,8 @@
 #include <aasdk/Messenger/Timestamp.hpp>
 #include <aasdk/Common/Data.hpp>
 #include <autoapp/Projection/IAudioOutput.hpp>
+#include <fdk-aac/aacdecoder_lib.h>
+#include <fdk-aac/FDK_audio.h>
 
 namespace autoapp::projection {
 class AlsaAudioOutput : public IAudioOutput {
@@ -32,6 +34,8 @@ class AlsaAudioOutput : public IAudioOutput {
   snd_pcm_t *aud_handle = nullptr;
   unsigned int _channels = 0;
   unsigned int _rate = 0;
+  bool decoderConfigured = false;
+  HANDLE_AACDECODER  decoder = nullptr;
  public:
   AlsaAudioOutput(unsigned int channels, unsigned int rate, const char *outDev = "default");
 

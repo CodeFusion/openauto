@@ -39,8 +39,6 @@ void AudioTimer::onTimerExceeded(const asio::error_code &error) {
     promise_->reject(aasdk::error::Error(aasdk::error::ErrorCode::NONE));
     promise_.reset();
   }
-//
-//
 }
 
 void AudioTimer::request(Promise::Pointer promise) {
@@ -77,6 +75,7 @@ AudioService::AudioService(asio::io_service &ioService,
                            aasdk::channel::av::IAudioServiceChannel::Pointer channel,
                            projection::IAudioOutput::Pointer audioOutput, AudioSignals::Pointer audiosignals)
     : strand_(ioService),
+      WriterStrand(ioService),
       channel_(std::move(channel)),
       audioOutput_(std::move(audioOutput)),
       session_(-1),
@@ -117,7 +116,7 @@ void AudioService::fillFeatures(aasdk::proto::messages::ServiceDiscoveryResponse
   channelDescriptor->set_channel_id(static_cast<uint32_t>(channel_->getId()));
 
   auto *audioChannel = channelDescriptor->mutable_av_channel();
-  audioChannel->set_stream_type(aasdk::proto::enums::AVStreamType::AUDIO);
+  audioChannel->set_stream_type(aasdk::proto::enums::AVStreamType::AUDIO_AAC_ADTS);
 
   switch (channel_->getId()) {
     case aasdk::messenger::ChannelId::SYSTEM_AUDIO:audioChannel->set_audio_type(aasdk::proto::enums::AudioType::SYSTEM);
@@ -222,7 +221,20 @@ void AudioService::onAVChannelStopIndication(const aasdk::proto::messages::AVCha
 
 void AudioService::onAVMediaWithTimestampIndication(aasdk::messenger::Timestamp::ValueType timestamp,
                                                     const aasdk::common::DataConstBuffer &buffer) {
-  audioOutput_->write(timestamp, buffer);
+
+  //Copy the buffer, so we can control its lifecycle.
+  auto *dataBuffer = static_cast<uint8_t *>(malloc(buffer.size));
+  std::copy(buffer.cdata, buffer.cdata+buffer.size, dataBuffer);
+  auto *tempBuffer = new aasdk::common::DataConstBuffer(dataBuffer, buffer.size);
+
+  //post this task, so that we don't block here.
+  WriterStrand.post([this, timestamp, tempBuffer](){
+    LOG(DEBUG) << "Wrote " << tempBuffer->size;
+    audioOutput_->write(timestamp, *tempBuffer);
+    free((void *) tempBuffer->cdata);
+    delete tempBuffer;
+  });
+
   timer_.extend();
 
   aasdk::proto::messages::AVMediaAckIndication indication;
