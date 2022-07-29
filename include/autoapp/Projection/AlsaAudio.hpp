@@ -34,7 +34,6 @@ class AlsaAudioOutput : public IAudioOutput {
   snd_pcm_t *aud_handle = nullptr;
   unsigned int _channels = 0;
   unsigned int _rate = 0;
-  bool decoderConfigured = false;
   HANDLE_AACDECODER  decoder = nullptr;
  public:
   AlsaAudioOutput(unsigned int channels, unsigned int rate, const char *outDev = "default");
