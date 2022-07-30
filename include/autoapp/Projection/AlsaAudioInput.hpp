@@ -34,7 +34,7 @@ class AlsaAudioInput : public IAudioInput {
   typedef aasdk::io::Promise<void, void> StartPromise;
   typedef aasdk::io::Promise<aasdk::common::Data, void> ReadPromise;
 
-  explicit AlsaAudioInput(asio::io_service &ioService, const std::string &micDevice = "default");
+  explicit AlsaAudioInput(asio::io_service &ioService, std::string micDevice = "default");
 
   ~AlsaAudioInput() override;
 
@@ -42,28 +42,32 @@ class AlsaAudioInput : public IAudioInput {
 
   bool isActive() const override;
 
-  void read(ReadPromise::Pointer promise) override;
+  void read(ReadPromise::Pointer error_code) override;
 
   void start(StartPromise::Pointer promise) override;
 
   void stop() override;
 
-  uint32_t getSampleSize() const override { return 16; };
+  uint32_t getSampleSize() const override { return sampleSize; };
 
-  uint32_t getChannelCount() const override { return 1; };
+  uint32_t getChannelCount() const override { return channels; };
 
-  uint32_t getSampleRate() const override { return 16000; };
+  uint32_t getSampleRate() const override { return sampleRate; };
 
  private:
   asio::io_service &ioService_;
   ReadPromise::Pointer readPromise_;
   mutable std::mutex mutex_;
   snd_pcm_t *pcm_handle = nullptr;
-  snd_pcm_uframes_t buffer_size = 256;
-  snd_pcm_uframes_t period_size = 16;
   asio::posix::stream_descriptor *sd = nullptr;
+  const uint32_t sampleSize = 16;
+  const uint32_t channels = 1;
+  const uint32_t sampleRate = 16000;
+  const uint32_t latency = 500000; //in microseconds
+  const snd_pcm_uframes_t buffer_size = 256;
+  const snd_pcm_uframes_t period_size = 16;
 
-  void handler(asio::error_code ec);
+  void handler(asio::error_code l_error_code);
 };
 
 }

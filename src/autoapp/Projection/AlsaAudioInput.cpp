@@ -1,25 +1,26 @@
 #include <easylogging++.h>
 #include <autoapp/Projection/AlsaAudioInput.hpp>
+#include <utility>
 
 namespace autoapp::projection {
 void AlsaAudioInput::read(ReadPromise::Pointer promise) {
   std::lock_guard<decltype(mutex_)> lock(mutex_);
 
-  if (readPromise_ != nullptr) {
+  if (readPromise_ != nullptr || sd == nullptr) {
     promise->reject();
   } else {
     readPromise_ = std::move(promise);
     sd->async_wait(asio::posix::stream_descriptor::wait_read,
-                   [this](asio::error_code ec) { this->handler(ec); });
+                   [this](asio::error_code error_code) { this->handler(error_code); });
   }
 }
 
-void AlsaAudioInput::handler(asio::error_code ec) {
+void AlsaAudioInput::handler(asio::error_code error_code) {
   std::lock_guard<decltype(mutex_)> lock(mutex_);
 
   VLOG(9) << "AlsaAudioInput::handler called";
 
-  if (snd_pcm_state(pcm_handle) != SND_PCM_STATE_RUNNING || ec == asio::error::operation_aborted) {
+  if (snd_pcm_state(pcm_handle) != SND_PCM_STATE_RUNNING || error_code == asio::error::operation_aborted) {
     VLOG(9) << "mic handler stopped";
     return;
   }
@@ -29,7 +30,7 @@ void AlsaAudioInput::handler(asio::error_code ec) {
   if (avail > 0) {
     auto readSize = snd_pcm_frames_to_bytes(pcm_handle, avail);
     VLOG(9) << "Read:  " << readSize;
-    auto tempBuffer = new uint8_t[readSize];
+    auto *tempBuffer = new uint8_t[readSize];
     snd_pcm_sframes_t frames = snd_pcm_readi(pcm_handle, tempBuffer, static_cast<snd_pcm_uframes_t>(avail));
     if (frames < 0) {
       LOG(ERROR) << "Mic read error: " << snd_strerror(frames);
@@ -49,16 +50,16 @@ void AlsaAudioInput::handler(asio::error_code ec) {
     }
     VLOG(9) << "left: " << avail;
 
-  } else if (avail < 0) {
+  } else if (avail < 0 || sd == nullptr) {
     LOG(ERROR) << "Mic read error: " << snd_strerror(avail);
   } else {
     sd->async_wait(asio::posix::stream_descriptor::wait_read,
-                   [this](asio::error_code ec) { this->handler(ec); });
+                   [this](asio::error_code l_error_code) { this->handler(l_error_code); });
   }
 }
 
-AlsaAudioInput::AlsaAudioInput(asio::io_service &ioService, const std::string &micDevice)
-    : micDevice(micDevice), ioService_(ioService) {
+AlsaAudioInput::AlsaAudioInput(asio::io_service &ioService, std::string micDevice)
+    : micDevice(std::move(micDevice)), ioService_(ioService) {
 }
 
 AlsaAudioInput::~AlsaAudioInput() = default;
@@ -66,84 +67,19 @@ AlsaAudioInput::~AlsaAudioInput() = default;
 void AlsaAudioInput::start(StartPromise::Pointer promise) {
   int err;
   if (pcm_handle == nullptr) {
-    snd_pcm_hw_params_t *hw_params;
 
-    err = snd_pcm_open(&pcm_handle, micDevice.c_str(), SND_PCM_STREAM_CAPTURE, 0);
-    if (err < 0) {
+    if ((err = snd_pcm_open(&pcm_handle, micDevice.c_str(), SND_PCM_STREAM_CAPTURE, 0)) < 0) {
       LOG(ERROR) << "Playback open error: " << snd_strerror(err);
       promise->reject();
       return;
     }
 
-    snd_pcm_hw_params_malloc(&hw_params);
-
-    err = snd_pcm_hw_params_any(pcm_handle, hw_params);
-    if (err < 0) {
-      LOG(ERROR) << "Broken configuration for mic: no configurations available: "
-                 << snd_strerror(err);
+    if ((err = snd_pcm_set_params(pcm_handle, SND_PCM_FORMAT_S16_LE, SND_PCM_ACCESS_RW_INTERLEAVED,
+                                  getChannelCount(), getSampleRate(), 1, latency)) < 0) {
+      LOG(ERROR) << "Mic open error: " << snd_strerror(err);
       promise->reject();
       return;
     }
-    /* set the interleaved read/write format */
-    err = snd_pcm_hw_params_set_access(pcm_handle, hw_params, SND_PCM_ACCESS_RW_INTERLEAVED);
-    if (err < 0) {
-      LOG(ERROR) << "Access type not available for mic: " << snd_strerror(err);
-      promise->reject();
-      return;
-    }
-    /* set the sample format */
-    err = snd_pcm_hw_params_set_format(pcm_handle, hw_params, SND_PCM_FORMAT_S16_LE);
-    if (err < 0) {
-      LOG(ERROR) << "Sample format not available for mic: " << snd_strerror(err);
-      promise->reject();
-      return;
-    }
-    /* set the count of channels */
-    err = snd_pcm_hw_params_set_channels(pcm_handle, hw_params, 1);
-    if (err < 0) {
-      LOG(ERROR) << "Channels count (1) not available for mic: " << snd_strerror(err);
-      promise->reject();
-      return;
-    }
-    /* set the stream rate */
-    unsigned int rrate = 16000;
-    err = snd_pcm_hw_params_set_rate_near(pcm_handle, hw_params, &rrate, nullptr);
-    if (err < 0) {
-      LOG(ERROR) << "Rate " << rrate << "Hz not available for playback: " << snd_strerror(err);
-      promise->reject();
-      return;
-    }
-    if (rrate != 16000) {
-      LOG(ERROR) << "Rate doesn't match (requested 16000Hz, get " << rrate << "Hz";
-      promise->reject();
-      return;
-    }
-    /* set the buffer time */
-    err = snd_pcm_hw_params_set_buffer_size_near(pcm_handle, hw_params, &buffer_size);
-
-    if (err < 0) {
-      LOG(ERROR) << "Unable to set buffer size " << buffer_size << " for playback: "
-                 << snd_strerror(err);
-      promise->reject();
-      return;
-    }
-    /* set the period time */
-    err = snd_pcm_hw_params_set_period_size_near(pcm_handle, hw_params, &period_size, nullptr);
-    if (err < 0) {
-      LOG(ERROR) << "Unable to set period time " << period_size << " for playback: "
-                 << snd_strerror(err);
-      promise->reject();
-      return;
-    }
-    /* write the parameters to device */
-    if ((err = snd_pcm_hw_params(pcm_handle, hw_params)) < 0) {   /* 0.25sec */
-      LOG(ERROR) << "Mic HW Config error: " << snd_strerror(err);
-      snd_pcm_close(pcm_handle);
-      promise->reject();
-      return;
-    }
-
-    snd_pcm_hw_params_free(hw_params);
 
     snd_pcm_sw_params_t *sw_params;
 
@@ -166,19 +102,19 @@ void AlsaAudioInput::start(StartPromise::Pointer promise) {
     int count;
     count = snd_pcm_poll_descriptors_count(pcm_handle);
     if (count <= 0) {
-      printf("Invalid poll descriptors count\n");
+      LOG(ERROR) << "Invalid poll descriptors count";
       promise->reject();
       return;
     }
     ufds = (pollfd *) malloc(sizeof(struct pollfd) * count);
     if (ufds == nullptr) {
-      printf("No enough memory\n");
+      LOG(ERROR) << "No enough memory";
       promise->reject();
       return;
     }
 
     if ((err = snd_pcm_poll_descriptors(pcm_handle, ufds, static_cast<unsigned int>(count))) < 0) {
-      printf("Unable to obtain poll descriptors for recording: %s\n", snd_strerror(err));
+      LOG(ERROR) << "Unable to obtain poll descriptors for recording: " << snd_strerror(err);
       free(ufds);
       promise->reject();
       return;
@@ -188,14 +124,13 @@ void AlsaAudioInput::start(StartPromise::Pointer promise) {
     free(ufds);
   }
 
-  err = snd_pcm_prepare(pcm_handle);
-  if (err < 0) {
+  if ((err = snd_pcm_prepare(pcm_handle)) < 0) {
     LOG(ERROR) << "snd_pcm_prepare err: " << snd_strerror(err);
     promise->reject();
     return;
   }
-  err = snd_pcm_start(pcm_handle);
-  if (err < 0) {
+
+  if ((err = snd_pcm_start(pcm_handle)) < 0) {
     LOG(ERROR) << "snd_pcm_start err: " << snd_strerror(err);
     promise->reject();
     return;
@@ -204,9 +139,11 @@ void AlsaAudioInput::start(StartPromise::Pointer promise) {
 }
 
 void AlsaAudioInput::stop() {
+  if (sd != nullptr) {
+    sd->cancel();
+  }
   if (pcm_handle != nullptr) {
     snd_pcm_drop(pcm_handle);
-    sd->cancel();
     snd_pcm_close(pcm_handle);
     pcm_handle = nullptr;
   }
