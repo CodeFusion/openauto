@@ -4,7 +4,6 @@
 #include <autoapp/Projection/IVideoOutput.hpp>
 #include <thread>
 #include <asio.hpp>
-#include <mutex>
 #include <autoapp/Signals/VideoSignals.hpp>
 
 
@@ -16,7 +15,6 @@
 namespace autoapp::projection {
 
 class GSTVideoOutput : public IVideoOutput {
-  FILE *gst_file = nullptr;
 
  public:
   explicit GSTVideoOutput(asio::io_service &ioService);
@@ -38,7 +36,7 @@ class GSTVideoOutput : public IVideoOutput {
   [[nodiscard]] aasdk::proto::enums::VideoResolution::Enum
   getVideoResolution() const override { return aasdk::proto::enums::VideoResolution::Enum::VideoResolution_Enum__480p; }
 
-  [[nodiscard]] size_t getScreenDPI() const override { return 141; }
+  [[nodiscard]] size_t getScreenDPI() const override { return dpi; }
 
   [[nodiscard]] VideoMargins getVideoMargins() const override;
 
@@ -48,12 +46,11 @@ class GSTVideoOutput : public IVideoOutput {
   int p_stdin[2]{}, p_stdout[2]{};
   asio::streambuf buffer;
   asio::posix::stream_descriptor *sd = nullptr;
-  bool running;
-  std::mutex VideoMutex;
+  const size_t dpi = 141;
 
 
 
-  void message_handler(asio::error_code ec, size_t bytes_transferred);
+  void message_handler(asio::error_code errorCode, size_t bytes_transferred);
 
   void spawn_gst();
 };

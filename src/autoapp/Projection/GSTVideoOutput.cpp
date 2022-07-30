@@ -7,29 +7,31 @@
 
 namespace autoapp::projection {
 
-GSTVideoOutput::GSTVideoOutput(asio::io_service &ioService) : ioService_(ioService), running(false) {}
+GSTVideoOutput::GSTVideoOutput(asio::io_service &ioService) : ioService_(ioService) {}
 
-void GSTVideoOutput::message_handler(asio::error_code ec, size_t bytes_transferred) {
-  if (bytes_transferred || !ec) {
-    std::string s((std::istreambuf_iterator<char>(&buffer)), std::istreambuf_iterator<char>());
+void GSTVideoOutput::message_handler(asio::error_code errorCode, size_t bytes_transferred) {
+  if (bytes_transferred > 0 || !errorCode) {
+    std::string logString((std::istreambuf_iterator<char>(&buffer)), std::istreambuf_iterator<char>());
     buffer.consume(bytes_transferred);
-    unsigned int newline = s.rfind('\n');
-    s.erase(newline); // Remove extranious new line
 
-    std::smatch m;
-    std::regex e("\x1b[[0-9;]*m");
+    logString.erase(logString.rfind('\n')); // Remove extranious new line
 
-    LOG(INFO) << regex_replace(s, e, "");
+    std::smatch match;
+    std::regex eraseRegex("\x1b.*m"); //Regex to remove terminal escape sequences
+
+    LOG(INFO) << regex_replace(logString, eraseRegex, "");
   }
-  if (ec != asio::error::operation_aborted) {
-    asio::async_read_until(*sd, buffer, '\n', [this](asio::error_code ec, size_t bytes_transferred) {
-      this->message_handler(ec, bytes_transferred);
-    });
+  if (errorCode != asio::error::operation_aborted) {
+    if(sd != nullptr) {
+      asio::async_read_until(*sd, buffer, '\n', [this](asio::error_code errorCode, size_t bytes_transferred) {
+        this->message_handler(errorCode, bytes_transferred);
+      });
+    }
   }
 }
 
 void GSTVideoOutput::spawn_gst() {
-  posix_spawn_file_actions_t fa;
+  posix_spawn_file_actions_t file_actions;
   char *const launch[] = {
       (char *) "sh",
       (char *) "-c",
@@ -52,11 +54,11 @@ void GSTVideoOutput::spawn_gst() {
       nullptr
   };
 
-  if (posix_spawn_file_actions_init(&fa) == 0) {
-    if (posix_spawn_file_actions_adddup2(&fa, p_stdin[0], 0) == 0) {
-      if (posix_spawn_file_actions_adddup2(&fa, p_stdout[1], 1) == 0) {
-        if (posix_spawn(&gstpid, "/bin/sh", &fa, nullptr, launch, environment) == 0) {
-          posix_spawn_file_actions_destroy(&fa);
+  if (posix_spawn_file_actions_init(&file_actions) == 0) {
+    if (posix_spawn_file_actions_adddup2(&file_actions, p_stdin[0], 0) == 0) {
+      if (posix_spawn_file_actions_adddup2(&file_actions, p_stdout[1], 1) == 0) {
+        if (posix_spawn(&gstpid, "/bin/sh", &file_actions, nullptr, launch, environment) == 0) {
+          posix_spawn_file_actions_destroy(&file_actions);
           fcntl(p_stdin[1], F_SETFD, 0);
           fcntl(p_stdout[0], F_SETFD, 0);
           close(p_stdout[1]);
@@ -65,7 +67,7 @@ void GSTVideoOutput::spawn_gst() {
         }
       }
     }
-    posix_spawn_file_actions_destroy(&fa);
+    posix_spawn_file_actions_destroy(&file_actions);
   }
 }
 
@@ -78,7 +80,9 @@ bool GSTVideoOutput::open() {
 
   if (gstpid == -1) {
 
-    if (pipe2(p_stdin, O_CLOEXEC) || pipe2(p_stdout, O_CLOEXEC) != 0) return false;
+    if (pipe2(p_stdin, O_CLOEXEC) != 0 || pipe2(p_stdout, O_CLOEXEC) != 0) {
+      return false;
+    }
 
 
     /* If the child's end of the pipe happens to already be on the final
@@ -91,12 +95,13 @@ bool GSTVideoOutput::open() {
       close(p_stdin[0]);
       p_stdin[0] = tmp;
     }
-    fcntl(p_stdin[1], F_SETPIPE_SZ, 1048576);
+    const int pipe_max = 1048576; //maximum size of pipe on our system
+    fcntl(p_stdin[1], F_SETPIPE_SZ, pipe_max);
     spawn_gst();
 
     sd = new asio::posix::stream_descriptor(ioService_, p_stdout[0]);
-    asio::async_read_until(*sd, buffer, '\n', [this](asio::error_code ec, size_t bytes_transferred) {
-      this->message_handler(ec, bytes_transferred);
+    asio::async_read_until(*sd, buffer, '\n', [this](asio::error_code error_code, size_t bytes_transferred) {
+      this->message_handler(error_code, bytes_transferred);
     });
   }
   return true;
@@ -108,7 +113,7 @@ bool GSTVideoOutput::init() {
 
 void GSTVideoOutput::write(__attribute__((unused)) uint64_t timestamp,
                            const aasdk::common::DataConstBuffer &buf) {
-    ::write(p_stdin[1], buf.cdata, buf.size);
+  ::write(p_stdin[1], buf.cdata, buf.size);
 }
 
 void GSTVideoOutput::stop() {
@@ -116,7 +121,9 @@ void GSTVideoOutput::stop() {
     kill(gstpid, SIGTERM);
     gstpid = -1;
     close(p_stdin[1]);
-    sd->close();
+    if(sd != nullptr) {
+      sd->close();
+    }
   }
 }
 
