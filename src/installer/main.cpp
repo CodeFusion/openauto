@@ -50,23 +50,23 @@ void install_bds() {
   } else {
     int lastId = 0;
     bool bdsconfigured = false;
-    for (tinyxml2::XMLElement *e = serviceconfig->FirstChildElement(); e != nullptr; e = e->NextSiblingElement()) {
-      lastId = e->IntAttribute("id", lastId);
-      if (std::string(e->Attribute("name")) == "AndroidAuto") {
+    for (tinyxml2::XMLElement *element = serviceconfig->FirstChildElement(); element != nullptr; element = element->NextSiblingElement()) {
+      lastId = element->IntAttribute("id", lastId);
+      if (std::string(element->Attribute("name")) == "AndroidAuto") {
         bdsconfigured = true;
         LOG(INFO) << "/jci/bds/BdsConfiguration.xml already configured";
       }
     }
     if (!bdsconfigured) {
-      tinyxml2::XMLElement *e = serviceconfig->InsertNewChildElement("serialPort");
-      e->SetAttribute("id", lastId + 1);
-      e->SetAttribute("name", "AndroidAuto");
-      e->SetAttribute("noOfInstances", 1);
-      e->SetAttribute("critical", false);
-      e->SetAttribute("enabled", true);
-      e->SetAttribute("uuidServer", "4DE17A0052CB11E6BDF40800200C9A66");
-      e->SetAttribute("uuidClient", "4DE17A0052CB11E6BDF40800200C9A66");
-      e->SetAttribute("writeDelay", 3);
+      tinyxml2::XMLElement *element = serviceconfig->InsertNewChildElement("serialPort");
+      element->SetAttribute("id", lastId + 1);
+      element->SetAttribute("name", "AndroidAuto");
+      element->SetAttribute("noOfInstances", 1);
+      element->SetAttribute("critical", false);
+      element->SetAttribute("enabled", true);
+      element->SetAttribute("uuidServer", "4DE17A0052CB11E6BDF40800200C9A66");
+      element->SetAttribute("uuidClient", "4DE17A0052CB11E6BDF40800200C9A66");
+      element->SetAttribute("writeDelay", 3);
       doc.SaveFile("/jci/bds/BdsConfiguration.xml");
       LOG(INFO) << "/jci/bds/BdsConfiguration.xml configured";
     }
@@ -100,38 +100,38 @@ void setup_sm() {
     LOG(DEBUG) << "Couldn't find services in /jci/sm/sm.conf";
   } else {
     bool serviceconfigured = false;
-    for (tinyxml2::XMLElement *e = serviceconfig->FirstChildElement(); e != nullptr; e = e->NextSiblingElement()) {
-      if (std::string(e->Attribute("name")) == "autoapp") {
+    for (tinyxml2::XMLElement *element = serviceconfig->FirstChildElement(); element != nullptr; element = element->NextSiblingElement()) {
+      if (std::string(element->Attribute("name")) == "autoapp") {
         serviceconfigured = true;
         LOG(INFO) << "/jci/sm/sm.conf already configured";
       }
     }
     if (!serviceconfigured) {
-      tinyxml2::XMLElement *e = serviceconfig->InsertNewChildElement("service");
-      e->SetAttribute("type", "process");
-      e->SetAttribute("name", "autoapp");
-      e->SetAttribute("path", "/mnt/data_persist/dev/bin/autoapp");
-      e->SetAttribute("autorun", "yes");
-      e->SetAttribute("reset_board", "no");
-      e->SetAttribute("retry_count", 6);
-      e->SetAttribute("args", "");
-      tinyxml2::XMLElement *dependancy = e->InsertNewChildElement("dependency");
+      tinyxml2::XMLElement *element = serviceconfig->InsertNewChildElement("service");
+      element->SetAttribute("type", "process");
+      element->SetAttribute("name", "autoapp");
+      element->SetAttribute("path", "/mnt/data_persist/dev/bin/autoapp");
+      element->SetAttribute("autorun", "yes");
+      element->SetAttribute("reset_board", "no");
+      element->SetAttribute("retry_count", 6);
+      element->SetAttribute("args", "");
+      tinyxml2::XMLElement *dependancy = element->InsertNewChildElement("dependency");
       dependancy->SetAttribute("type", "service");
       dependancy->SetAttribute("value", "bds");
-      dependancy = e->InsertNewChildElement("dependency");
+      dependancy = element->InsertNewChildElement("dependency");
       dependancy->SetAttribute("type", "service");
       dependancy->SetAttribute("value", "audio_manager");
 
     }
     if (checkAapaVersion()) {
-      for (tinyxml2::XMLElement *e = serviceconfig->FirstChildElement(); e != nullptr; e = e->NextSiblingElement()) {
-        if (std::string(e->Attribute("name")) == "jciAAPA") {
+      for (tinyxml2::XMLElement *element = serviceconfig->FirstChildElement(); element != nullptr; element = element->NextSiblingElement()) {
+        if (std::string(element->Attribute("name")) == "jciAAPA") {
           LOG(INFO) << "Disabling jciAAPA";
-          e->SetAttribute("autorun", false);
+          element->SetAttribute("autorun", false);
         }
-        if (std::string(e->Attribute("name")) == "aap_service") {
+        if (std::string(element->Attribute("name")) == "aap_service") {
           LOG(INFO) << "Disabling aap_service";
-          e->SetAttribute("autorun", false);
+          element->SetAttribute("autorun", false);
         }
       }
     }
@@ -155,9 +155,9 @@ void setup_mmui() {
 
   LOG(DEBUG) << docRoot->GetLineNum();
 
-  for (tinyxml2::XMLElement *e = docRoot->FirstChildElement(); e != nullptr; e = e->NextSiblingElement()) {
-    if (std::string(e->Attribute("name")) == "androidauto") {
-      e->SetAttribute("priority", 30);
+  for (tinyxml2::XMLElement *element = docRoot->FirstChildElement(); element != nullptr; element = element->NextSiblingElement()) {
+    if (std::string(element->Attribute("name")) == "androidauto") {
+      element->SetAttribute("priority", 30);
       LOG(DEBUG) << "Set androidauto priority to 30";
       doc.SaveFile("/jci/mmui/mmui_config.xml");
       break;
