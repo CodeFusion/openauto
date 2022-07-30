@@ -229,7 +229,7 @@ void AudioService::onAVMediaWithTimestampIndication(aasdk::messenger::Timestamp:
 
   //post this task, so that we don't block here.
   WriterStrand.post([this, timestamp, tempBuffer](){
-    LOG(DEBUG) << "Wrote " << tempBuffer->size;
+    VLOG(9) << "Wrote " << tempBuffer->size;
     audioOutput_->write(timestamp, *tempBuffer);
     free((void *) tempBuffer->cdata);
     delete tempBuffer;

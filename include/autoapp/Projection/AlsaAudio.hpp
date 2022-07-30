@@ -34,6 +34,8 @@ class AlsaAudioOutput : public IAudioOutput {
   snd_pcm_t *aud_handle = nullptr;
   unsigned int _channels = 0;
   unsigned int _rate = 0;
+  const uint32_t latency = 500000; //in microseconds
+  const uint32_t sampleSize = 16;
   HANDLE_AACDECODER  decoder = nullptr;
  public:
   AlsaAudioOutput(unsigned int channels, unsigned int rate, const char *outDev = "default");
@@ -51,7 +53,7 @@ class AlsaAudioOutput : public IAudioOutput {
 
   void suspend() override {};
 
-  [[nodiscard]] uint32_t getSampleSize() const override { return 16; };
+  [[nodiscard]] uint32_t getSampleSize() const override { return sampleSize; };
 
   [[nodiscard]] uint32_t getChannelCount() const override { return static_cast<uint32_t>(_channels); }
 

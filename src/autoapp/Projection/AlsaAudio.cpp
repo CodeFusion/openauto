@@ -17,7 +17,7 @@ AlsaAudioOutput::AlsaAudioOutput(unsigned int channels, unsigned int rate, const
 bool AlsaAudioOutput::open() {
   int err;
   if ((err = snd_pcm_set_params(aud_handle, SND_PCM_FORMAT_S16_LE, SND_PCM_ACCESS_RW_INTERLEAVED,
-                                _channels, _rate, 1, 500000)) < 0) {   /* 1.0sec */
+                                _channels, _rate, 1, latency)) < 0) {   /* 1.0sec */
     LOG(ERROR) << "Playback open error: " << snd_strerror(err);
     return false;
   }
@@ -52,7 +52,7 @@ void AlsaAudioOutput::write(__attribute__((unused)) aasdk::messenger::Timestamp:
 
     //Fill the decoder buffer with one audio packet
     ret = aacDecoder_Fill(decoder, &bufPtr, &buffer.size, &bytesLeft);
-    LOG(DEBUG) << "aacDecoder_Fill bytes left " << bytesLeft;
+    VLOG(9) << "aacDecoder_Fill bytes left " << bytesLeft;
     if (ret != 0) {
       LOG(ERROR) << "aacDecoder_Fill failed with " << ret;
     }
