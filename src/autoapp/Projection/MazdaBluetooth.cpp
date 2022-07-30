@@ -1,8 +1,8 @@
 #include <autoapp/Projection/MazdaBluetooth.hpp>
+#include "easylogging++.h"
 
 #include <iostream>
 #include <iomanip>
-#include <fstream>
 
 // We can retrieve MAC Address from Mazda CMU from two sys paths:
 //    /sys/fsl_otp/HW_OCOTP_MAC1 for the begining
@@ -16,27 +16,7 @@
 // Cache the address if we need to retrieve it repeatedly;
 static std::string macAddress;
 
-static uint32_t hexStrToInt(const std::string &hexStr) {
-  uint32_t x;
-  std::stringstream ss;
-  ss << std::hex << hexStr;
-  ss >> x;
-  return x;
-}
-
-/**
-*   Converts passed number into HEX pair for MAC address, e.g. 10 -> 0A
-*/
-static std::string formatNumber(uint32_t num) {
-  std::stringstream str;
-  if (num < 16) {
-    str << "0";   // MACs are padded with zeros... std::setw doesn't woork on HU.
-  }
-  str << std::uppercase << std::hex;
-  str << num;
-  std::string out = str.str();
-  return out;
-}
+#define SHIFT_AND_MASK(value, shift)   (((value) >> (shift)) & mask)
 
 std::string get_bluetooth_mac_address() {
   if (!macAddress.empty()) {
@@ -57,23 +37,27 @@ std::string get_bluetooth_mac_address() {
     return "";
   }
 
-  uint32_t macAddrUpper = hexStrToInt(macUpper.str());
-  uint32_t macAddrLower = hexStrToInt(macLower.str());
+  uint32_t macAddrUpper = std::stoul(macUpper.str(), nullptr, 16);
+  uint32_t macAddrLower = std::stoul(macLower.str(), nullptr, 16);
 
-  std::stringstream ss;
-  ss << formatNumber((macAddrUpper >> 8) & 0xFF);
-  ss << ":";
-  ss << formatNumber(macAddrUpper & 0xFF);
-  ss << ":";
-  ss << formatNumber((macAddrLower >> 24) & 0xFF);
-  ss << ":";
-  ss << formatNumber((macAddrLower >> 16) & 0xFF);
-  ss << ":";
-  ss << formatNumber((macAddrLower >> 8) & 0xFF);
-  ss << ":";
-  ss << formatNumber((macAddrLower & 0xFF) + 1);  // Is BT address really always +1 from the base one in file?
+  const uint8_t mask = 0xFF;
 
-  macAddress = ss.str();
+  std::stringstream macStream;
+  macStream << std::setw(2) << std::setfill('0') << std::uppercase << std::hex;
+  macStream << SHIFT_AND_MASK(macAddrUpper, 8);
+  macStream << ":";
+  macStream << SHIFT_AND_MASK(macAddrUpper, 0);
+  macStream << ":";
+  macStream << SHIFT_AND_MASK(macAddrLower, 24);
+  macStream << ":";
+  macStream << SHIFT_AND_MASK(macAddrLower, 16);
+  macStream << ":";
+  macStream << SHIFT_AND_MASK(macAddrLower, 8);
+  macStream << ":";
+  macStream << SHIFT_AND_MASK(macAddrLower, 0) + 1;  // BT address really always +1 from the base one in file
+
+  macAddress = macStream.str();
+  LOG(DEBUG) << macAddress;
   return macAddress;
 }
 
