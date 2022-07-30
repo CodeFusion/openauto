@@ -67,7 +67,7 @@ void AudioInputService::fillFeatures(aasdk::proto::messages::ServiceDiscoveryRes
   auto *avInputChannel = channelDescriptor->mutable_av_input_channel();
   avInputChannel->set_stream_type(aasdk::proto::enums::AVStreamType::AUDIO);
 
-  auto audioConfig = avInputChannel->mutable_audio_config();
+  auto *audioConfig = avInputChannel->mutable_audio_config();
   audioConfig->set_sample_rate(audioInput_->getSampleRate());
   audioConfig->set_bit_depth(audioInput_->getSampleSize());
   audioConfig->set_channel_count(audioInput_->getChannelCount());
@@ -83,7 +83,7 @@ void AudioInputService::onChannelOpenRequest(const aasdk::proto::messages::Chann
   response.set_status(status);
 
   auto promise = aasdk::channel::SendPromise::defer(strand_);
-  promise->then([]() {}, [&](const aasdk::error::Error &e) { onChannelError(e); });
+  promise->then([]() {}, [&](const aasdk::error::Error &error) { onChannelError(error); });
   channel_->sendChannelOpenResponse(response, std::move(promise));
 
   channel_->receive(this->shared_from_this());
@@ -100,7 +100,7 @@ void AudioInputService::onAVChannelSetupRequest(const aasdk::proto::messages::AV
   response.add_configs(0);
 
   auto promise = aasdk::channel::SendPromise::defer(strand_);
-  promise->then([]() {}, [&](const aasdk::error::Error &e) { onChannelError(e); });
+  promise->then([]() {}, [&](const aasdk::error::Error &error) { onChannelError(error); });
   channel_->sendAVChannelSetupResponse(response, std::move(promise));
 
   channel_->receive(this->shared_from_this());
@@ -122,7 +122,7 @@ void AudioInputService::onAVInputOpenRequest(const aasdk::proto::messages::AVInp
                          response.set_value(1);
 
                          auto sendPromise = aasdk::channel::SendPromise::defer(strand_);
-                         sendPromise->then([]() {}, [&](const aasdk::error::Error &e) { onChannelError(e); });
+                         sendPromise->then([]() {}, [&](const aasdk::error::Error &error) { onChannelError(error); });
                          channel_->sendAVInputOpenResponse(response, std::move(sendPromise));
                        });
 
@@ -139,19 +139,19 @@ void AudioInputService::onAVInputOpenRequest(const aasdk::proto::messages::AVInp
     response.set_value(0);
 
     auto sendPromise = aasdk::channel::SendPromise::defer(strand_);
-    sendPromise->then([]() {}, [&](const aasdk::error::Error &e) { onChannelError(e); });
+    sendPromise->then([]() {}, [&](const aasdk::error::Error &error) { onChannelError(error); });
     channel_->sendAVInputOpenResponse(response, std::move(sendPromise));
   }
 
   channel_->receive(this->shared_from_this());
 }
 
-void AudioInputService::onAVMediaAckIndication(const aasdk::proto::messages::AVMediaAckIndication &) {
+void AudioInputService::onAVMediaAckIndication([[maybe_unused]] const aasdk::proto::messages::AVMediaAckIndication &indication) {
   channel_->receive(this->shared_from_this());
 }
 
-void AudioInputService::onChannelError(const aasdk::error::Error &e) {
-  LOG(ERROR) << "[AudioInputService] channel error: " << e.what();
+void AudioInputService::onChannelError(const aasdk::error::Error &error) {
+  LOG(ERROR) << "[AudioInputService] channel error: " << error.what();
 }
 
 void AudioInputService::onAudioInputOpenSucceed() {
@@ -162,7 +162,7 @@ void AudioInputService::onAudioInputOpenSucceed() {
   response.set_value(0);
 
   auto sendPromise = aasdk::channel::SendPromise::defer(strand_);
-  sendPromise->then([]() {}, [&](const aasdk::error::Error &e) { onChannelError(e); });
+  sendPromise->then([]() {}, [&](const aasdk::error::Error &error) { onChannelError(error); });
   channel_->sendAVInputOpenResponse(response, std::move(sendPromise));
 
   this->readAudioInput();
@@ -171,7 +171,7 @@ void AudioInputService::onAudioInputOpenSucceed() {
 void AudioInputService::onAudioInputDataReady(const aasdk::common::Data &data) {
   auto sendPromise = aasdk::channel::SendPromise::defer(strand_);
   sendPromise->then([&]() { readAudioInput(); },
-                    [&](const aasdk::error::Error &e) { onChannelError(e); });
+                    [&](const aasdk::error::Error &error) { onChannelError(error); });
 
   auto timestamp =
       std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());

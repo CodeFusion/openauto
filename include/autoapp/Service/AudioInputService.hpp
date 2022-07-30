@@ -44,12 +44,12 @@ class AudioInputService
   void onAVChannelSetupRequest(const aasdk::proto::messages::AVChannelSetupRequest &request) override;
   void onAVInputOpenRequest(const aasdk::proto::messages::AVInputOpenRequest &request) override;
   void onAVMediaAckIndication(const aasdk::proto::messages::AVMediaAckIndication &indication) override;
-  void onChannelError(const aasdk::error::Error &e) override;
+  void onChannelError(const aasdk::error::Error &error) override;
 
  private:
   using std::enable_shared_from_this<AudioInputService>::shared_from_this;
   void onAudioInputOpenSucceed();
-  void onAudioInputDataReady(const aasdk::common::Data &data);
+  void onAudioInputDataReady(const aasdk::common::Data &error);
   void readAudioInput();
 
   asio::io_service::strand strand_;
