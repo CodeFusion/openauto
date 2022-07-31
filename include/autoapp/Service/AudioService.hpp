@@ -23,6 +23,7 @@
 #include <autoapp/Projection/IAudioOutput.hpp>
 #include <autoapp/Service/IService.hpp>
 #include <autoapp/Signals/AudioSignals.hpp>
+#include "aasdk/Messenger/IMessenger.hpp"
 
 namespace autoapp::service {
 
@@ -54,7 +55,8 @@ class AudioService
   typedef std::shared_ptr<AudioService> Pointer;
 
   AudioService(asio::io_service &ioService,
-               aasdk::channel::av::IAudioServiceChannel::Pointer channel,
+               aasdk::messenger::IMessenger::Pointer messenger,
+               aasdk::messenger::ChannelId channelID,
                projection::IAudioOutput::Pointer audioOutput,
                AudioSignals::Pointer audiosignals);
 

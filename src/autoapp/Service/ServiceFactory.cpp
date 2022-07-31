@@ -19,8 +19,7 @@
 #include <aasdk/Channel/AV/MediaAudioServiceChannel.hpp>
 #include <autoapp/Service/ServiceFactory.hpp>
 #include <autoapp/Service/VideoService.hpp>
-#include <autoapp/Service/MediaAudioService.hpp>
-#include <autoapp/Service/SpeechAudioService.hpp>
+#include <autoapp/Service/AudioService.hpp>
 #include <autoapp/Service/AudioInputService.hpp>
 #include <autoapp/Service/SensorService.hpp>
 #include <autoapp/Service/BluetoothService.hpp>
@@ -30,7 +29,6 @@
 #include <autoapp/Projection/AlsaAudioInput.hpp>
 #include <autoapp/Projection/InputDevice.hpp>
 #include <autoapp/Projection/MazdaBluetooth.hpp>
-#include <autoapp/Service/SystemAudioService.hpp>
 #include <autoapp/Service/NavigationService.hpp>
 
 namespace autoapp::service {
@@ -78,16 +76,18 @@ IService::Pointer ServiceFactory::createInputService(aasdk::messenger::IMessenge
 void ServiceFactory::createAudioServices(ServiceList &serviceList,
                                          const aasdk::messenger::IMessenger::Pointer &messenger) {
   auto mediaAudioOutput = std::make_shared<projection::AlsaAudioOutput>(2, 48000, "entertainmentMl");
-  serviceList.emplace_back(std::make_shared<MediaAudioService>(ioService_,
-                                                               messenger,
-                                                               std::move(mediaAudioOutput),
-                                                               signals_.audioSignals));
+  serviceList.emplace_back(std::make_shared<AudioService>(ioService_,
+                                                          messenger,
+                                                          aasdk::messenger::ChannelId::MEDIA_AUDIO,
+                                                          std::move(mediaAudioOutput),
+                                                          signals_.audioSignals));
 
   auto speechAudioOutput = std::make_shared<projection::AlsaAudioOutput>(1, 16000, "informationNavi");
-  serviceList.emplace_back(std::make_shared<SpeechAudioService>(ioService_,
-                                                                messenger,
-                                                                std::move(speechAudioOutput),
-                                                                signals_.audioSignals));
+  serviceList.emplace_back(std::make_shared<AudioService>(ioService_,
+                                                          messenger,
+                                                          aasdk::messenger::ChannelId::SPEECH_AUDIO,
+                                                          std::move(speechAudioOutput),
+                                                          signals_.audioSignals));
 
 //  auto systemAudioOutput = std::make_shared<projection::AlsaAudioOutput>(1, 16000, "vrGeneric");
 //  serviceList.emplace_back(std::make_shared<SystemAudioService>(ioService_,

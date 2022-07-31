@@ -18,6 +18,7 @@
 
 #include <easylogging++.h>
 #include <autoapp/Service/AudioService.hpp>
+#include "aasdk/Channel/AV/AudioServiceChannel.hpp"
 
 namespace autoapp::service {
 
@@ -72,15 +73,17 @@ void AudioTimer::extend() {
 }
 
 AudioService::AudioService(asio::io_service &ioService,
-                           aasdk::channel::av::IAudioServiceChannel::Pointer channel,
-                           projection::IAudioOutput::Pointer audioOutput, AudioSignals::Pointer audiosignals)
+                           aasdk::messenger::IMessenger::Pointer messenger,
+                           aasdk::messenger::ChannelId channelID,
+                           projection::IAudioOutput::Pointer audioOutput,
+                           AudioSignals::Pointer audiosignals)
     : strand_(ioService),
       WriterStrand(ioService),
-      channel_(std::move(channel)),
       audioOutput_(std::move(audioOutput)),
       session_(-1),
       audiosignals_(std::move(audiosignals)),
       timer_(ioService) {
+  channel_ = std::make_shared<aasdk::channel::av::AudioServiceChannel>(strand_, std::move(messenger), channelID);
 }
 
 void AudioService::start() {
