@@ -7,6 +7,7 @@
 #include <com_xsembedded_ServiceProvider_objectProxy.h>
 
 #include <thread>
+#include <mutex>
 
 using json = nlohmann::json;
 
@@ -35,6 +36,8 @@ class AudioManagerClient {
   std::shared_ptr<DBus::Connection> connection;
 
   std::shared_ptr<DBus::ObjectProxy> object;
+
+  std::mutex AudioMutex;
 
   void RegisterStream(std::string StreamName,
                       aasdk::messenger::ChannelId ChannelId,
