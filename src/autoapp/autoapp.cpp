@@ -243,6 +243,9 @@ int main(int argc, char *argv[]) {
 //  while (connected) {
 //    sleep(1);
 //  }
+  delete aapa;
+  delete videoManager;
+  delete httpManager;
   LOG(DEBUG) << "Calling app->stop()";
   app->stop();
   LOG(DEBUG) << "Stopping ioService";

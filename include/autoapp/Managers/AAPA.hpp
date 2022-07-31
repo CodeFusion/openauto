@@ -17,7 +17,7 @@ class AADBus : public com_jci_aapa {
   VideoSignals::Pointer vs;
 
  public:
-  AADBus(VideoSignals::Pointer videosignals);
+  explicit AADBus(VideoSignals::Pointer videosignals);
 
   typedef DBus::MultipleReturn<std::tuple<uint8_t, std::string, std::string, std::string, std::string>,
                                int32_t> NowPlayingInfo;
