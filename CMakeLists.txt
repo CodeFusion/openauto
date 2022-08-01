@@ -154,7 +154,7 @@ target_include_directories(autoapp PRIVATE external/mINI/src/mini)
 target_link_libraries(autoapp
         ${SIGC++_LIBRARIES}
         ${ALSA_LIBRARIES}
-        ${Protobuf_LITE_LIBRARIES}
+        ${Protobuf_LIBRARIES}
         ${OPENSSL_LIBRARIES}
         ${LIBEVDEV_LIBRARIES}
         ${DBUS_LIBRARIES}
