@@ -10,6 +10,7 @@
 #include <mutex>
 
 using json = nlohmann::json;
+using AudioFocusState = aasdk::proto::enums::AudioFocusState;
 
 struct Stream {
   std::string name;
@@ -26,7 +27,7 @@ class AudioManagerClient {
   bool inCall = false;
   std::vector<std::string> MazdaDestinations;
   std::map<aasdk::messenger::ChannelId, Stream *> streams;
-  std::map<std::string, int> ExistingStreams;
+//  std::map<std::string, int> ExistingStreams;
   std::map<int, Stream *> streamsByID;
 
   std::shared_ptr<com_xsembedded_ServiceProvider_objectProxy> AudioInterface;
@@ -46,7 +47,7 @@ class AudioManagerClient {
 
   void populateData();
 
-  void populateStreamTable();
+//  void populateStreamTable();
 
   std::string RequestHandler(const std::string &methodName, const std::string &arguments);
 

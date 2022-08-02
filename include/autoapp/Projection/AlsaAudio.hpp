@@ -37,6 +37,7 @@ class AlsaAudioOutput : public IAudioOutput {
   const uint32_t latency = 500000; //in microseconds
   const uint32_t sampleSize = 16;
   HANDLE_AACDECODER  decoder = nullptr;
+  std::string deviceName;
  public:
   AlsaAudioOutput(unsigned int channels, unsigned int rate, const char *outDev = "default");
 

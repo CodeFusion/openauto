@@ -2,8 +2,6 @@
 #include <easylogging++.h>
 #include <thread>
 
-using AudioFocusState = aasdk::proto::enums::AudioFocusState;
-
 void AudioManagerClient::onRequestAudioFocusResult(json result, Stream *stream) {
   std::lock_guard<std::mutex> lock(AudioMutex);
   if (result["newFocus"].get<std::string>() == "granted") {
@@ -26,9 +24,7 @@ void AudioManagerClient::onAudioFocusChange(json result, Stream *stream) {
         {"playing", false}
     };
     AudioProxy->Request("audioActive", activeargs.dump());
-    if (stream->channelId == aasdk::messenger::ChannelId::MEDIA_AUDIO) {
-      audiosignals_->focusChanged.emit(stream->channelId, AudioFocusState::LOSS);
-    }
+    audiosignals_->focusChanged.emit(stream->channelId, AudioFocusState::LOSS);
     LOG(DEBUG) << "Stream " << stream->id << ": " << stream->name << " Focus Lost";
   } else if (focus == "temporarilyLost") {
     stream->focus = false;
@@ -37,11 +33,9 @@ void AudioManagerClient::onAudioFocusChange(json result, Stream *stream) {
         {"playing", false}
     };
     AudioProxy->Request("audioActive", activeargs.dump());
-    if (stream->channelId == aasdk::messenger::ChannelId::MEDIA_AUDIO) {
-      audiosignals_->focusChanged.emit(stream->channelId, AudioFocusState::LOSS_TRANSIENT);
-    }
+    audiosignals_->focusChanged.emit(stream->channelId, AudioFocusState::LOSS_TRANSIENT);
     LOG(DEBUG) << "Stream " << stream->id << ": " << stream->name << " Focus Temporarily Lost";
-  } else if (result["newFocus"].get<std::string>() == "gained") {
+  } else if (focus == "gained") {
     stream->focus = true;
     switch (stream->channelId) {
       case aasdk::messenger::ChannelId::MEDIA_AUDIO:
@@ -57,12 +51,12 @@ void AudioManagerClient::onAudioFocusChange(json result, Stream *stream) {
         break;
       default:break;
     }
-    LOG(DEBUG) << "Stream " << stream->id << ": " << stream->name << " Focus Gained";
+    LOG(DEBUG) << "Stream " << stream->id << ": " << stream->name << " Has Focus " << stream->focus;
   }
 }
 
 std::string AudioManagerClient::RequestHandler(const std::string &methodName, const std::string &arguments) {
-  VLOG(9) << methodName << " " << arguments;
+  LOG(DEBUG) << methodName << " " << arguments;
   auto result = json::parse(arguments);
   if (streamsByID.count(result["sessionId"].get<int>()) > 0) {
     Stream *stream = streamsByID[result["sessionId"].get<int>()];
@@ -152,63 +146,6 @@ void AudioManagerClient::populateData() {
   }
 }
 
-void AudioManagerClient::populateStreamTable() {
-  json requestArgs = {
-      {"svc", "SRCS"},
-      {"pretty", false}
-  };
-  // dbus-send --print-reply --type=method_call --address=unix:path=/tmp/dbus_service_socket --dest=com.xsembedded.service.AudioManagement /com/xse/service/AudioManagement/AudioApplication com.xsembedded.ServiceProvider.Request string:"dumpState" string:'{"svc":"SRCS", "pretty":false}'
-//  method return sender=:1.40 -> dest=:1.173 reply_serial=2
-//  string "{"HMI":["1..\/com\/jci\/audio\/am_hmi_client"],"APP":["29.CPAltAudio.CPALTAUDIO..NotPlaying","1.Media.AUX..NotPlaying","3.Media.DAB..NotPlaying","2.Media.CD..NotPlaying","5.Media.FM.gained.playing","4.Media.AM..NotPlaying","7.Media.HAR..NotPlaying","6.LowAlert.TA..NotPlaying","9.Media.XM..NotPlaying","8.Media.LM..NotPlaying","27.CPAlerts.CPALERTS..NotPlaying","17.Media.TV..NotPlaying","13.Media.BTMUSIC..NotPlaying","21.Media.USB..NotPlaying","11.InfoMix.NAVIVOL..NotPlaying","23.CPMedia.CPDEFAULTIN..NotPlaying","34.InfoUser.SMS..NotPlaying","28.CPSiri.CPSIRI..NotPlaying","33.InfoUser.PHONEBOOK..NotPlaying","32.HighAlert.BTECAALERT..NotPlaying","31.MP911.BTECA..NotPlaying","30.VR.SYSVR..NotPlaying","15.IncomingRg.BTHFALERT..NotPlaying","18.Media.Stitcher..NotPlaying","19.Media.AHA..NotPlaying","25.CPInCall.CPINCALL..NotPlaying","14.Telephony.BTHF..NotPlaying","24.CPMedia.CPMEDIA..NotPlaying","16.Media.DVD..NotPlaying","26.CPTel.CPTELEPHONY..NotPlaying","20.Media.Pandora..NotPlaying","12.InfoUser.RINGTONEVOL..NotPlaying","22.CPMedia.CPDEFAULT..NotPlaying","10.InfoUser.BTHFVOL..NotPlaying"]}"
-
-  std::string resultString = AudioProxy->Request("dumpState", requestArgs.dump());
-  VLOG(9) << "dumpState(" << requestArgs.dump().c_str() << ")\n" << resultString.c_str() << "\n";
-  /*
-       * An example resonse:
-       *
-      {
-        "HMI": {
-        },
-        "APP": [
-          "1.Media.Pandora.granted.NotPlaying",
-          "2.Media.AM..NotPlaying"
-        ]
-      }
-      */
-  //Row format:
-  //"%d.%s.%s.%s.%s", obj.sessionId, obj.stream.streamType, obj.stream.streamName, obj.focus, obj.stream.playing and "playing" or "NotPlaying")
-
-  try {
-    auto result = json::parse(resultString);
-    for (auto &sessionRecord : result["APP"].get_ref<json::array_t &>()) {
-      auto sessionStr = sessionRecord.get<std::string>();
-      //Stream names have no spaces, so it's safe to do this
-      std::replace(sessionStr.begin(), sessionStr.end(), '.', ' ');
-      std::istringstream sessionIStr(sessionStr);
-
-      int sessionId;
-      std::string streamName;
-      std::string streamType;
-
-      if (!(sessionIStr >> sessionId >> streamType >> streamName)) {
-        LOG(WARNING) << "Can't parse line \"" << sessionRecord.get<std::string>().c_str() << "\"";
-        continue;
-      }
-
-      VLOG(9) << "Found stream " << streamName.c_str() << " session id " << sessionId;
-      ExistingStreams.insert(std::pair<std::string, int>(streamName, sessionId));
-    }
-  }
-  catch (const std::domain_error &ex) {
-    LOG(ERROR) << "Failed to parse state json: " << ex.what();
-    LOG(ERROR) << resultString.c_str();
-  }
-  catch (const std::invalid_argument &ex) {
-    LOG(ERROR) << "Failed to parse state json: " << ex.what();
-    LOG(ERROR) << resultString.c_str();
-  }
-}
-
 AudioManagerClient::AudioManagerClient(AudioSignals::Pointer audiosignals,
                                        const std::shared_ptr<DBus::Connection> &session_connection)
     : audiosignals_(std::move(audiosignals)) {
@@ -226,7 +163,6 @@ AudioManagerClient::AudioManagerClient(AudioSignals::Pointer audiosignals,
   AudioProxy = AudioInterface->getcom_xsembedded_ServiceProviderInterface();
 
   populateData();
-  populateStreamTable();
   RegisterStream("MLENT", aasdk::messenger::ChannelId::MEDIA_AUDIO, "permanent", "Media");
   RegisterStream("Navi", aasdk::messenger::ChannelId::SPEECH_AUDIO, "transient", "InfoMix");
   for (auto &stream : streams) {
@@ -264,11 +200,6 @@ AudioManagerClient::~AudioManagerClient() {
 
 void AudioManagerClient::audioMgrRequestAudioFocus(aasdk::messenger::ChannelId channel_id,
                                                    aasdk::proto::enums::AudioFocusType_Enum aa_type) {
-////  for (auto stream: streams) {
-//    if (stream.second->focus && stream.second->channelId != channel_id) {
-//      audioMgrReleaseAudioFocus(stream.second->channelId);
-//    }
-////  }
   std::lock_guard<std::mutex> lock(AudioMutex);
   if (streams.count(channel_id) > 0) {
     if (!streams[channel_id]->focus) {
@@ -306,18 +237,19 @@ void AudioManagerClient::audioMgrRequestAudioFocus(aasdk::messenger::ChannelId c
 void AudioManagerClient::audioMgrReleaseAudioFocus(aasdk::messenger::ChannelId channel_id) {
   LOG(INFO) << "audioMgrReleaseAudioFocus()";
   std::lock_guard<std::mutex> lock(AudioMutex);
-  if (streams.count(channel_id) > 0) {
-    if (streams[channel_id]->focus) {
-      json args = {{"sessionId", streams[channel_id]->id}};
-      LOG(DEBUG) << args;
-      try {
+  try {
+    for (auto &stream : streams) {
+      LOG(DEBUG) << "Channel: " << int(stream.first) << " Stream: " << stream.second->id << " Focus: " << stream.second->focus;
+      if (stream.second->focus) {
+//        audioMgrStopPlaying(stream.first);
+        json args = {{"sessionId", stream.second->id}};
         std::string result = AudioProxy->Request("abandonAudioFocus", args.dump());
         LOG(DEBUG) << "abandonAudioFocus(" << args.dump().c_str() << ")\n" << result.c_str();
       }
-      catch (DBus::Error &e) {
-        LOG(ERROR) << e.what();
-      }
     }
+  }
+  catch (DBus::Error &e) {
+    LOG(ERROR) << e.what();
   }
 }
 

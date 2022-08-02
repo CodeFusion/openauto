@@ -6,6 +6,7 @@ namespace autoapp::projection {
 AlsaAudioOutput::AlsaAudioOutput(unsigned int channels, unsigned int rate, const char *outDev) {
   _channels = channels;
   _rate = rate;
+  deviceName.assign(outDev);
   LOG(INFO) << "snd_asoundlib_version: " << snd_asoundlib_version();
   LOG(INFO) << "Device name " << outDev;
   int err;
@@ -17,7 +18,7 @@ AlsaAudioOutput::AlsaAudioOutput(unsigned int channels, unsigned int rate, const
 bool AlsaAudioOutput::open() {
   int err;
   if ((err = snd_pcm_set_params(aud_handle, SND_PCM_FORMAT_S16_LE, SND_PCM_ACCESS_RW_INTERLEAVED,
-                                _channels, _rate, 1, latency)) < 0) {   /* 1.0sec */
+                                _channels, _rate, 1, latency)) < 0) {
     LOG(ERROR) << "Playback open error: " << snd_strerror(err);
     return false;
   }
@@ -67,7 +68,7 @@ void AlsaAudioOutput::write(__attribute__((unused)) aasdk::messenger::Timestamp:
       //Write the data to the ALSA buffer for playback
       snd_pcm_sframes_t frames = snd_pcm_writei(aud_handle, outBuf, streaminfo->frameSize);
       if (frames < 0) {
-        LOG(ERROR) << "snd_pcm_writei:  " << snd_strerror(frames);
+        LOG(ERROR) << deviceName <<  " snd_pcm_writei:  " << snd_strerror(frames);
         frames = snd_pcm_recover(aud_handle, frames, 1);
         if (frames < 0) {
           LOG(ERROR) << "snd_pcm_recover failed: " << snd_strerror(frames);
