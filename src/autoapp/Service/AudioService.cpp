@@ -67,7 +67,7 @@ void AudioTimer::cancel() {
 void AudioTimer::extend() {
   strand_.dispatch([this]() mutable {
     cancelled_ = false;
-    timer_.expires_after(std::chrono::seconds(delay_));
+    timer_.expires_after(std::chrono::milliseconds(delay_));
     timer_.async_wait(strand_.wrap([this](const asio::error_code &error) { onTimerExceeded(error); }));
   });
 }
