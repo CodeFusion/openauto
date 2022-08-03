@@ -45,6 +45,8 @@ class AudioTimer {
   bool cancelled_;
   Promise::Pointer promise_;
   const int delay_ = 1500;
+  std::mutex timerMutex;
+
 };
 
 class AudioService

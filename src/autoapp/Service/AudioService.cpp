@@ -28,6 +28,7 @@ AudioTimer::AudioTimer(asio::io_service &ioService) :
 }
 
 void AudioTimer::onTimerExceeded(const asio::error_code &error) {
+  std::lock_guard<std::mutex> lock(timerMutex);
   if (promise_ == nullptr) {
     return;
   }
@@ -43,33 +44,33 @@ void AudioTimer::onTimerExceeded(const asio::error_code &error) {
 }
 
 void AudioTimer::request(Promise::Pointer promise) {
-  strand_.dispatch([this, promise = std::move(promise)]() mutable {
-    cancelled_ = false;
+  std::lock_guard<std::mutex> lock(timerMutex);
+  cancelled_ = false;
 
     if (promise_ != nullptr) {
       promise_->reject(aasdk::error::Error(aasdk::error::ErrorCode::OPERATION_IN_PROGRESS));
+      cancelled_ = false;
+      timer_.expires_after(std::chrono::milliseconds(delay_));
+      timer_.async_wait(strand_.wrap([this](const asio::error_code &error) { onTimerExceeded(error); }));
     } else {
 
       promise_ = std::move(promise);
       timer_.expires_after(std::chrono::milliseconds(delay_));
       timer_.async_wait(strand_.wrap([this](const asio::error_code &error) { onTimerExceeded(error); }));
     }
-  });
 }
 
 void AudioTimer::cancel() {
-  strand_.dispatch([this]() {
-    cancelled_ = true;
+  std::lock_guard<std::mutex> lock(timerMutex);
+  cancelled_ = true;
     timer_.cancel();
-  });
 }
 
 void AudioTimer::extend() {
-  strand_.dispatch([this]() mutable {
-    cancelled_ = false;
+  std::lock_guard<std::mutex> lock(timerMutex);
+  cancelled_ = false;
     timer_.expires_after(std::chrono::milliseconds(delay_));
     timer_.async_wait(strand_.wrap([this](const asio::error_code &error) { onTimerExceeded(error); }));
-  });
 }
 
 AudioService::AudioService(asio::io_service &ioService,
