@@ -44,7 +44,7 @@ class AudioTimer {
   asio::basic_waitable_timer<std::chrono::steady_clock> timer_;
   bool cancelled_;
   Promise::Pointer promise_;
-  const int delay_ = 500;
+  const int delay_ = 1500;
 };
 
 class AudioService
