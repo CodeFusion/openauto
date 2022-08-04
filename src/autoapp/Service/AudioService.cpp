@@ -76,7 +76,7 @@ void AudioTimer::extend() {
 AudioService::AudioService(asio::io_service &ioService,
                            aasdk::messenger::IMessenger::Pointer messenger,
                            aasdk::messenger::ChannelId channelID,
-                           projection::IAudioOutput::Pointer audioOutput,
+                           std::vector<projection::IAudioOutput::Pointer> audioOutput,
                            AudioSignals::Pointer audiosignals)
     : strand_(ioService),
       WriterStrand(ioService),
@@ -97,7 +97,9 @@ void AudioService::start() {
 void AudioService::stop() {
   strand_.dispatch([this, self = this->shared_from_this()]() {
     LOG(INFO) << "[AudioService] stop, channel: " << aasdk::messenger::channelIdToString(channel_->getId());
-    audioOutput_->stop();
+    for(auto &audioOutput: audioOutput_) {
+      audioOutput->stop();
+    }
   });
 }
 
@@ -137,9 +139,9 @@ void AudioService::fillFeatures(aasdk::proto::messages::ServiceDiscoveryResponse
   audioChannel->set_available_while_in_call(true);
 
   auto *audioConfig = audioChannel->add_audio_configs();
-  audioConfig->set_sample_rate(audioOutput_->getSampleRate());
-  audioConfig->set_bit_depth(audioOutput_->getSampleSize());
-  audioConfig->set_channel_count(audioOutput_->getChannelCount());
+  audioConfig->set_sample_rate(audioOutput_.front()->getSampleRate());
+  audioConfig->set_bit_depth(audioOutput_.front()->getSampleSize());
+  audioConfig->set_channel_count(audioOutput_.front()->getChannelCount());
 }
 
 void AudioService::onChannelOpenRequest(const aasdk::proto::messages::ChannelOpenRequest &request) {
@@ -148,12 +150,17 @@ void AudioService::onChannelOpenRequest(const aasdk::proto::messages::ChannelOpe
             << ", priority: " << request.priority();
 
   LOG(DEBUG) << "[AudioService] channel: " << aasdk::messenger::channelIdToString(channel_->getId())
-             << " audio output sample rate: " << audioOutput_->getSampleRate()
-             << ", sample size: " << audioOutput_->getSampleSize()
-             << ", channel count: " << audioOutput_->getChannelCount();
+             << " audio output sample rate: " << audioOutput_.front()->getSampleRate()
+             << ", sample size: " << audioOutput_.front()->getSampleSize()
+             << ", channel count: " << audioOutput_.front()->getChannelCount();
+
+  bool openStatus = true;
+  for(auto &audioOutput: audioOutput_){
+    openStatus = (audioOutput->open() && openStatus);
+  }
 
   const aasdk::proto::enums::Status::Enum
-      status = audioOutput_->open() ? aasdk::proto::enums::Status::OK : aasdk::proto::enums::Status::FAIL;
+      status = openStatus ? aasdk::proto::enums::Status::OK : aasdk::proto::enums::Status::FAIL;
   LOG(INFO) << "[AudioService] open status: " << status
             << ", channel: " << aasdk::messenger::channelIdToString(channel_->getId());
 
@@ -208,7 +215,9 @@ void AudioService::onAVChannelStartIndication(const aasdk::proto::messages::AVCh
                 });
   timer_.request(std::move(promise));
   session_ = indication.session();
-  audioOutput_->start();
+  for(auto &audioOutput: audioOutput_){
+    audioOutput->start();
+  }
   channel_->receive(this->shared_from_this());
 }
 
@@ -219,7 +228,9 @@ void AudioService::onAVChannelStopIndication(const aasdk::proto::messages::AVCha
 //  if (channel_->getId() != aasdk::messenger::ChannelId::MEDIA_AUDIO)
 //    audiosignals_->focusRelease(channel_->getId());
   session_ = -1;
-  audioOutput_->suspend();
+  for(auto &audioOutput: audioOutput_) {
+    audioOutput->suspend();
+  }
   channel_->receive(this->shared_from_this());
 }
 
@@ -234,7 +245,9 @@ void AudioService::onAVMediaWithTimestampIndication(aasdk::messenger::Timestamp:
   //post this task, so that we don't block here.
   WriterStrand.post([this, timestamp, tempBuffer](){
     VLOG(9) << "Wrote " << tempBuffer->size;
-    audioOutput_->write(timestamp, *tempBuffer);
+    for(auto &audioOutput: audioOutput_) {
+      audioOutput->write(timestamp, *tempBuffer);
+    }
     free((void *) tempBuffer->cdata);
     delete tempBuffer;
   });

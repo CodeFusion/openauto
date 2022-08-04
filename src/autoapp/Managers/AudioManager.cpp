@@ -40,7 +40,7 @@ void AudioManagerClient::onAudioFocusChange(json result, Stream *stream) {
     switch (stream->channelId) {
       case aasdk::messenger::ChannelId::MEDIA_AUDIO:
         audiosignals_->focusChanged.emit(stream->channelId,
-                                         AudioFocusState::GAIN_MEDIA_ONLY);
+                                         AudioFocusState::GAIN);
         break;
       case aasdk::messenger::ChannelId::SPEECH_AUDIO:
 //            audiosignals_->focusChanged.emit(stream->channelId, AudioFocusState::GAIN_TRANSIENT_GUIDANCE_ONLY);
@@ -219,7 +219,7 @@ void AudioManagerClient::audioMgrRequestAudioFocus(aasdk::messenger::ChannelId c
       switch (channel_id) {
         case aasdk::messenger::ChannelId::MEDIA_AUDIO:
           audiosignals_->focusChanged.emit(channel_id,
-                                           AudioFocusState::GAIN_MEDIA_ONLY);
+                                           AudioFocusState::GAIN);
           break;
         case aasdk::messenger::ChannelId::SPEECH_AUDIO:
 //          audiosignals_->focusChanged.emit(channel_id, AudioFocusState::GAIN_TRANSIENT_GUIDANCE_ONLY);
@@ -238,11 +238,23 @@ void AudioManagerClient::audioMgrReleaseAudioFocus(aasdk::messenger::ChannelId c
   LOG(INFO) << "audioMgrReleaseAudioFocus()";
   std::lock_guard<std::mutex> lock(AudioMutex);
   try {
-    for (auto &stream : streams) {
-      LOG(DEBUG) << "Channel: " << int(stream.first) << " Stream: " << stream.second->id << " Focus: " << stream.second->focus;
-      if (stream.second->focus) {
-//        audioMgrStopPlaying(stream.first);
-        json args = {{"sessionId", stream.second->id}};
+    if (channel_id == aasdk::messenger::ChannelId::NONE) {
+      for (auto &stream : streams) {
+        LOG(DEBUG) << "Channel: " << int(stream.first) << " Stream: " << stream.second->id << " Focus: "
+                   << stream.second->focus;
+        if (stream.second->focus) {
+          json args = {{"sessionId", stream.second->id}};
+          std::string result = AudioProxy->Request("abandonAudioFocus", args.dump());
+          LOG(DEBUG) << "abandonAudioFocus(" << args.dump().c_str() << ")\n" << result.c_str();
+        }
+      }
+    } else {
+      auto &stream = streams[channel_id];
+      LOG(DEBUG) << "Channel: " << aasdk::messenger::channelIdToString(channel_id) << " Stream: " << stream->id
+                 << " Focus: "
+                 << stream->focus;
+      if (stream->focus) {
+        json args = {{"sessionId", stream->id}};
         std::string result = AudioProxy->Request("abandonAudioFocus", args.dump());
         LOG(DEBUG) << "abandonAudioFocus(" << args.dump().c_str() << ")\n" << result.c_str();
       }

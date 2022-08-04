@@ -59,7 +59,7 @@ class AudioService
   AudioService(asio::io_service &ioService,
                aasdk::messenger::IMessenger::Pointer messenger,
                aasdk::messenger::ChannelId channelID,
-               projection::IAudioOutput::Pointer audioOutput,
+               std::vector<projection::IAudioOutput::Pointer> audioOutput,
                AudioSignals::Pointer audiosignals);
 
   ~AudioService() noexcept override;
@@ -84,7 +84,7 @@ class AudioService
   asio::io_service::strand strand_;
   asio::io_service::strand WriterStrand;
   aasdk::channel::av::IAudioServiceChannel::Pointer channel_;
-  projection::IAudioOutput::Pointer audioOutput_;
+  std::vector<projection::IAudioOutput::Pointer> audioOutput_;
   int32_t session_;
   AudioSignals::Pointer audiosignals_;
   AudioTimer timer_;
