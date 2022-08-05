@@ -4,30 +4,27 @@
 
 #include <atomic>
 #include <set>
+#include <autoapp/Managers/IVideoManager.hpp>
 #include <autoapp/Service/VideoService.hpp>
-#include <autoapp/Signals/VideoSignals.hpp>
 
 #include <com_jci_nativeguictrl_objectProxy.h>
 #include <com_jci_bucpsa_objectProxy.h>
 
-class VideoManager {
+class VideoManager: public IVideoManager{
  private:
   std::shared_ptr<com_jci_bucpsa_objectProxy> bucpsa;
-  VideoSignals::Pointer vs;
   bool waitsForFocus = false;
-  sigc::connection requestFocusConnection;
-  sigc::connection releaseFocusConnection;
   bool currentDisplayMode;
   bool hasFocus = false;
   std::shared_ptr<com_jci_nativeguictrl_objectProxy> gui;
   void DisplayMode(uint32_t);
 
  public:
-  explicit VideoManager(VideoSignals::Pointer videosignals, const std::shared_ptr<DBus::Connection> &);
+  explicit VideoManager(const std::shared_ptr<DBus::Connection> &);
   ~VideoManager();
 
-  void requestFocus();
-  void releaseFocus();
+  void requestFocus() override;
+  void releaseFocus() override;
 
   enum SURFACES {
     NNG_NAVI_ID = 0,

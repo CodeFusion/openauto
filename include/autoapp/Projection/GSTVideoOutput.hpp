@@ -4,7 +4,6 @@
 #include <autoapp/Projection/IVideoOutput.hpp>
 #include <thread>
 #include <asio.hpp>
-#include <autoapp/Signals/VideoSignals.hpp>
 
 
 

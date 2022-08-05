@@ -1,23 +1,27 @@
 #pragma once
 
 #include <memory>
+#include <utility>
 #include <sigc++/sigc++.h>
 
-#include "VideoSignals.hpp"
 #include "AudioSignals.hpp"
 #include "GpsSignals.hpp"
 #include "AASignals.hpp"
 #include "NavigationSignals.hpp"
+#include "autoapp/Managers/IVideoManager.hpp"
 
 class Signals : public sigc::trackable {
  public:
   typedef std::shared_ptr<Signals> Pointer;
 
-  VideoSignals::Pointer videoSignals = std::make_shared<VideoSignals>();
+  IVideoManager::Pointer videoManager;
   AudioSignals::Pointer audioSignals = std::make_shared<AudioSignals>();
   GpsSignals::Pointer gpsSignals = std::make_shared<GpsSignals>();
-  AASignals::Pointer aaSignals = std::make_shared<AASignals>();
+  AASignals::Pointer aaSignals;
   NavigationSignals::Pointer navSignals = std::make_shared<NavigationSignals>();
 
-  Signals() = default;
+  explicit Signals(IVideoManager::Pointer VideoManager, AASignals::Pointer AaSignals) : videoManager(std::move(
+      VideoManager)), aaSignals(std::move(AaSignals)) {
+
+  };
 };

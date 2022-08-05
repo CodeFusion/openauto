@@ -2,8 +2,8 @@
 #include <easylogging++.h>
 #include "version.h"
 
-HttpManager::HttpManager(VideoSignals::Pointer videosignals, AASignals::Pointer aasignals)
-    : videosignals_(std::move(videosignals)), aasignals_(std::move(aasignals)) {
+HttpManager::HttpManager(IVideoManager::Pointer videosignals, AASignals::Pointer aasignals)
+    : videoManager(std::move(videosignals)), aasignals_(std::move(aasignals)) {
   server.config.port = 9999;
 
   // Add resources using path-regex and method-string, and an anonymous function
@@ -44,7 +44,7 @@ HttpManager::HttpManager(VideoSignals::Pointer videosignals, AASignals::Pointer 
 
         response->write(SimpleWeb::StatusCode::success_ok, header);
 
-        videosignals_->focusRequest.emit();
+        videoManager->requestFocus();
 
         LOG(DEBUG) << "Got /takeVideoFocus call.";
       };
@@ -67,7 +67,7 @@ HttpManager::HttpManager(VideoSignals::Pointer videosignals, AASignals::Pointer 
   };
 
   serverThread = std::thread([&]() { server.start(); });
-  videosignals_->focusChanged.connect(sigc::mem_fun(*this, &HttpManager::handle_video_focus));
+  videoManager->registerFocus([this](bool focus){this->handle_video_focus(focus);});
   aasignals_->connected.connect(sigc::mem_fun(*this, &HttpManager::handle_aa_connect));
 }
 

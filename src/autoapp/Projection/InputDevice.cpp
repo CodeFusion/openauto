@@ -28,11 +28,11 @@ namespace autoapp::projection {
 
 InputDevice::InputDevice(asio::io_service &ioService,
                          AudioSignals::Pointer audiosignals,
-                         VideoSignals::Pointer videosignals) :
+                         IVideoManager::Pointer videosignals) :
     timer_(ioService),
     strand_(ioService),
     audiosignals_(std::move(audiosignals)),
-    videosignals_(std::move(videosignals)),
+    videoManger(std::move(videosignals)),
     eventHandler_(nullptr),
     canceled_(false) {
   keymap = {
@@ -55,7 +55,7 @@ InputDevice::InputDevice(asio::io_service &ioService,
       {KEY_E, ButtonCode::MEDIA}
   };
   audioFocusChanged = audiosignals_->focusChanged.connect(sigc::mem_fun(*this, &InputDevice::audio_focus));
-  videoFocusChanged = videosignals_->focusChanged.connect(sigc::mem_fun(*this, &InputDevice::video_focus));
+  videoManger->registerFocus([this](bool focus){this->video_focus(focus);});
 }
 
 void InputDevice::audio_focus(aasdk::messenger::ChannelId channel_id, aasdk::proto::enums::AudioFocusState_Enum state) {
@@ -284,9 +284,9 @@ void InputDevice::handle_key(input_event *ev) {
             return;
           case ButtonCode::BACK: // We use both these buttons for releasing focus, so fall through to the next case.
           case ButtonCode::CALL_END:LOG(DEBUG) << "Release Video Focus";
-            videosignals_->focusRelease.emit();
+            videoManger->releaseFocus();
             return;
-          case ButtonCode::HOME:videosignals_->focusRequest.emit();
+          case ButtonCode::HOME:videoManger->requestFocus();
             return;
           default:break;
         }

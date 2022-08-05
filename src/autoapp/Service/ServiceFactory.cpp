@@ -56,7 +56,7 @@ ServiceList ServiceFactory::create(aasdk::messenger::IMessenger::Pointer messeng
 
 IService::Pointer ServiceFactory::createVideoService(aasdk::messenger::IMessenger::Pointer messenger) {
   projection::IVideoOutput::Pointer videoOutput(new projection::GSTVideoOutput(ioService_));
-  return std::make_shared<VideoService>(ioService_, messenger, std::move(videoOutput), signals_.videoSignals);
+  return std::make_shared<VideoService>(ioService_, messenger, std::move(videoOutput), signals_.videoManager);
 }
 
 IService::Pointer ServiceFactory::createBluetoothService(aasdk::messenger::IMessenger::Pointer messenger) {
@@ -68,7 +68,7 @@ IService::Pointer ServiceFactory::createBluetoothService(aasdk::messenger::IMess
 
 IService::Pointer ServiceFactory::createInputService(aasdk::messenger::IMessenger::Pointer messenger) {
   projection::IInputDevice::Pointer
-      inputDevice(std::make_shared<projection::InputDevice>(ioService_, signals_.audioSignals, signals_.videoSignals));
+      inputDevice(std::make_shared<projection::InputDevice>(ioService_, signals_.audioSignals, signals_.videoManager));
 
   return std::make_shared<InputService>(ioService_, messenger, std::move(inputDevice));
 }

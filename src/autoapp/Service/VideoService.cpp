@@ -24,12 +24,12 @@ namespace autoapp::service {
 VideoService::VideoService(asio::io_service &ioService,
                            aasdk::messenger::IMessenger::Pointer messenger,
                            projection::IVideoOutput::Pointer videoOutput,
-                           VideoSignals::Pointer videoSignals)
-    : videoSignals_(std::move(videoSignals)),
-      strand_(ioService),
+                           IVideoManager::Pointer VideoManager)
+    : strand_(ioService),
       channel_(std::make_shared<aasdk::channel::av::VideoServiceChannel>(strand_, std::move(messenger))),
       videoOutput_(std::move(videoOutput)),
-      session_(-1) {
+      session_(-1),
+      videoManager(std::move(VideoManager)){
 
 }
 
@@ -44,7 +44,7 @@ void VideoService::stop() {
   strand_.dispatch([this, self = this->shared_from_this()]() {
     LOG(INFO) << "[VideoService] stop.";
     focusChanged.disconnect();
-    videoSignals_->focusRelease.emit();
+    videoManager->releaseFocus();
   });
 }
 
@@ -63,7 +63,7 @@ void VideoService::resume() {
 void VideoService::onChannelOpenRequest(const aasdk::proto::messages::ChannelOpenRequest &request) {
   LOG(INFO) << "[VideoService] open request, priority: " << request.priority();
   const aasdk::proto::enums::Status::Enum status = aasdk::proto::enums::Status::OK;
-  focusChanged = videoSignals_->focusChanged.connect([this](bool focus) {
+  videoManager->registerFocus([this](bool focus) {
     if (focus) {
       sendVideoFocusIndication();
     }
@@ -90,7 +90,7 @@ void VideoService::onAVChannelSetupRequest(const aasdk::proto::messages::AVChann
                            : aasdk::proto::enums::AVChannelSetupStatus::FAIL;
   LOG(INFO) << "[VideoService] setup status: " << status;
 
-  videoSignals_->focusRequest.emit();
+  videoManager->requestFocus();
 
   aasdk::proto::messages::AVChannelSetupResponse response;
   response.set_media_status(status);
@@ -183,7 +183,7 @@ void VideoService::onVideoFocusRequest(const aasdk::proto::messages::VideoFocusR
             << ", focus mode: " << request.focus_mode()
             << ", focus reason: " << request.focus_reason();
 
-  videoSignals_->focusRequest.emit();
+  videoManager->requestFocus();
   channel_->receive(this->shared_from_this());
 }
 

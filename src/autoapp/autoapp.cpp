@@ -36,6 +36,7 @@
 #include <autoapp/Managers/HttpManager.hpp>
 #include <autoapp/Managers/BluetoothManager.hpp>
 #include <autoapp/Managers/NavigationManager.hpp>
+#include <autoapp/Managers/IVideoManager.hpp>
 #include <autoapp/Configuration/Configuration.hpp>
 
 #define MINI_CASE_SENSITIVE
@@ -175,7 +176,6 @@ int main(int argc, char *argv[]) {
   usbThreadPool usb_thread_pool(usbContext);
   startIOServiceWorkers(ioService, threadPool);
 
-  Signals signals = Signals();
 
 //  DBus::set_logging_function(DBus::log_std_err);
 //  DBus::set_log_level(SL_TRACE);
@@ -183,22 +183,23 @@ int main(int argc, char *argv[]) {
   std::shared_ptr<DBus::Connection> session_connection = dispatcher->create_connection(DBus::BusType::SESSION);
   std::shared_ptr<DBus::Connection> system_connection = dispatcher->create_connection(DBus::BusType::SYSTEM);
 
-  AudioManagerClient audioManager(signals.audioSignals, system_connection);
 
   //Define thise here, to prevent them from falling out-of-scope outside the if statements.
-  AAPA *aapa;
-  VideoManager *videoManager;
-  HttpManager *httpManager;
+  IVideoManager::Pointer videoManager;
+  AASignals::Pointer aaSignals = std::make_shared<AASignals>();
 
   if (checkAapaVersion()) {
     LOG(DEBUG) << "Using Mazda Android Auto Video";
-    aapa = new AAPA(signals.videoSignals, signals.aaSignals, session_connection);
+    videoManager = std::make_shared<AAPA>(aaSignals, session_connection);
   } else {
     LOG(DEBUG) << "Using internal Video handling";
-    videoManager = new VideoManager(signals.videoSignals, session_connection);
-    httpManager = new HttpManager(signals.videoSignals, signals.aaSignals);
+    videoManager = std::make_shared<VideoManager>(session_connection);
   }
+  Signals signals = Signals(videoManager, aaSignals);
+  HttpManager *httpManager;
+  httpManager = new HttpManager(videoManager, signals.aaSignals);
 
+  AudioManagerClient audioManager(signals.audioSignals, system_connection);
   GPSManager gpsManager(signals.gpsSignals, system_connection);
   NavigationManager navigationManager(signals.navSignals, system_connection);
 
@@ -236,20 +237,15 @@ int main(int argc, char *argv[]) {
   }
 
   signals.audioSignals->focusRelease.emit(aasdk::messenger::ChannelId::MEDIA_AUDIO);
-  signals.videoSignals->focusRelease.emit();
+  videoManager->releaseFocus();
   sleep(2);
 //  signals.aaSignals->shutdown.emit();
 //
 //  while (connected) {
 //    sleep(1);
 //  }
-  if (checkAapaVersion()) {
-    delete aapa;
 
-  }else {
-    delete videoManager;
-    delete httpManager;
-  }
+  delete httpManager;
   LOG(DEBUG) << "Calling app->stop()";
   app->stop();
   LOG(DEBUG) << "Stopping ioService";

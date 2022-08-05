@@ -3,7 +3,7 @@
 
 #include <utility>
 
-AADBus::AADBus(VideoSignals::Pointer videosignals) : vs(videosignals) {
+AADBus::AADBus(std::function<void(bool)> FocusChanged) : focusChanged(std::move(FocusChanged)) {
 
 }
 
@@ -14,10 +14,10 @@ uint8_t AADBus::GetAvailable() {
 void AADBus::VideoProjectionEventToMD(uint32_t videoProjectionEvent) {
   LOG(DEBUG) << "VideoProjectionEventToMD " << videoProjectionEvent;
   if (videoProjectionEvent == 1) {
-    vs->focusChanged.emit(false);
+    focusChanged(false);
   }
   if (videoProjectionEvent == 4){
-    vs->focusChanged.emit(true);
+    focusChanged(true);
   }
 }
 
@@ -41,12 +41,12 @@ void AADBus::SbnStatus(bool status) {
   LOG(DEBUG) << "SbnStatus " << status;
 }
 
-AAPA::AAPA(VideoSignals::Pointer videosignals, AASignals::Pointer aasignals,
+AAPA::AAPA(AASignals::Pointer aasignals,
            const std::shared_ptr<DBus::Connection> &session_connection) :
-    vs(std::move(videosignals)), as(std::move(aasignals)) {
+    as(std::move(aasignals)) {
   session_connection->request_name("com.jci.aapa", DBUSCXX_NAME_FLAG_REPLACE_EXISTING);
 
-  androiddbus = new AADBus(vs);
+  androiddbus = new AADBus([this](bool focus){this->focusChanged(focus);});
 
   adapter = com_jci_aapaInterface::create(androiddbus);
 
@@ -54,8 +54,6 @@ AAPA::AAPA(VideoSignals::Pointer videosignals, AASignals::Pointer aasignals,
 
   adapter->signal_Available()->emit(1);
 
-  releaseFocusConnection = vs->focusRelease.connect(sigc::mem_fun(*this, &AAPA::releaseFocus));
-  requestFocusConnection = vs->focusRequest.connect(sigc::mem_fun(*this, &AAPA::requestFocus));
   ConnectedConnection = as->connected.connect(sigc::mem_fun(*this, &AAPA::AAConnected));
 
 
@@ -67,26 +65,23 @@ AAPA::AAPA(VideoSignals::Pointer videosignals, AASignals::Pointer aasignals,
 void AAPA::DisplayMode(uint32_t DisplayMode) {
 //   currentDisplayMode != 0 means backup camera wants the screen
   if ((bool) DisplayMode && _connected) {
-    vs->focusChanged.emit(false);
+    focusChanged(false);
   }
 }
 
 void AAPA::requestFocus() {
   adapter->signal_VideoProjectionRequestFromMD()->emit(0);
   adapter->signal_ProjectionStatusResult()->emit(true);
-  vs->focusChanged.emit(true);
+  focusChanged(true);
 }
 
 void AAPA::releaseFocus() {
   adapter->signal_VideoProjectionRequestFromMD()->emit(1);
-  vs->focusChanged.emit(false);
+  focusChanged(false);
 }
 
 AAPA::~AAPA() {
   LOG(DEBUG) << "Stopping VideoManager";
-  releaseFocusConnection.disconnect();
-  requestFocusConnection.disconnect();
-  FocusChangeConnection.disconnect();
   ConnectedConnection.disconnect();
   releaseFocus();
 }

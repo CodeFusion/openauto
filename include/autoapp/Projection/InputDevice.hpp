@@ -42,7 +42,7 @@ namespace autoapp::projection {
 class InputDevice : public IInputDevice {
 
  public:
-  InputDevice(asio::io_service &ioService, AudioSignals::Pointer audiosignals, VideoSignals::Pointer videosignals);
+  InputDevice(asio::io_service &ioService, AudioSignals::Pointer audiosignals, IVideoManager::Pointer videosignals);
 
   void start(IInputDeviceEventHandler &eventHandler) override;
 
@@ -58,7 +58,7 @@ class InputDevice : public IInputDevice {
   asio::basic_waitable_timer<std::chrono::steady_clock> timer_;
   asio::io_service::strand strand_;
   AudioSignals::Pointer audiosignals_;
-  VideoSignals::Pointer videosignals_;
+  IVideoManager::Pointer videoManger;
   IInputDeviceEventHandler *eventHandler_;
   std::mutex mutex_;
   int touch_fd = -1, kbd_fd = -1;

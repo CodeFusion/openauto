@@ -23,8 +23,9 @@
 #include <aasdk/Channel/AV/IVideoServiceChannelEventHandler.hpp>
 #include <autoapp/Projection/IVideoOutput.hpp>
 #include <autoapp/Service/IService.hpp>
-#include <autoapp/Signals/VideoSignals.hpp>
 #include <autoapp/Managers/VideoManager.hpp>
+#include <autoapp/Managers/IVideoManager.hpp>
+
 
 namespace autoapp::service {
 
@@ -38,7 +39,7 @@ class VideoService
   VideoService(asio::io_service &ioService,
                aasdk::messenger::IMessenger::Pointer messenger,
                projection::IVideoOutput::Pointer videoOutput,
-               VideoSignals::Pointer videoSignals);
+               IVideoManager::Pointer VideoManager);
 
   ~VideoService() noexcept override;
 
@@ -63,13 +64,13 @@ class VideoService
   void sendVideoFocusIndication();
   void sendVideoFocusLost();
 
-  VideoSignals::Pointer videoSignals_;
-
   asio::io_service::strand strand_;
   aasdk::channel::av::VideoServiceChannel::Pointer channel_;
   projection::IVideoOutput::Pointer videoOutput_;
   int32_t session_;
   sigc::connection focusChanged;
+  IVideoManager::Pointer videoManager;
+
 };
 
 }

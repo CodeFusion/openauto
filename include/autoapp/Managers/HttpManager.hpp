@@ -16,13 +16,13 @@ using HttpServer = SimpleWeb::Server<SimpleWeb::HTTP>;
 
 class HttpManager {
  public:
-  HttpManager(VideoSignals::Pointer videosignals, AASignals::Pointer aasignals);
+  HttpManager(IVideoManager::Pointer videosignals, AASignals::Pointer aasignals);
   ~HttpManager();
  private:
   bool has_video_focus = false;
   bool has_audio_focus = false;
   bool aa_connected = false;
-  VideoSignals::Pointer videosignals_;
+  IVideoManager::Pointer videoManager;
   AASignals::Pointer aasignals_;
   HttpServer server;
   std::thread serverThread;
