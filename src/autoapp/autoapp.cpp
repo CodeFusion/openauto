@@ -190,7 +190,7 @@ int main(int argc, char *argv[]) {
 
   if (checkAapaVersion()) {
     LOG(DEBUG) << "Using Mazda Android Auto Video";
-    videoManager = std::make_shared<AAPA>(aaSignals, session_connection);
+    videoManager = std::make_shared<AAPA>(session_connection);
   } else {
     LOG(DEBUG) << "Using internal Video handling";
     videoManager = std::make_shared<VideoManager>(session_connection);
@@ -222,11 +222,6 @@ int main(int argc, char *argv[]) {
                                             std::move(connectedAccessoriesEnumerator),
                                             configuration->wifiPort());
 
-  signals.aaSignals->connected.connect([](bool connected_) {
-    LOG(INFO) << "Android Auto " << (connected_ ? "Connected" : "Disconnected");
-    connected = connected_;
-  });
-
   app->waitForUSBDevice();
 
   // This needs to happen after the rest of openauto is set up, so it goes here.
@@ -237,13 +232,7 @@ int main(int argc, char *argv[]) {
   }
 
   signals.audioSignals->focusRelease.emit(aasdk::messenger::ChannelId::MEDIA_AUDIO);
-  videoManager->releaseFocus();
   sleep(2);
-//  signals.aaSignals->shutdown.emit();
-//
-//  while (connected) {
-//    sleep(1);
-//  }
 
   delete httpManager;
   LOG(DEBUG) << "Calling app->stop()";

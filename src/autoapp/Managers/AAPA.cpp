@@ -16,7 +16,7 @@ void AADBus::VideoProjectionEventToMD(uint32_t videoProjectionEvent) {
   if (videoProjectionEvent == 1) {
     focusChanged(false);
   }
-  if (videoProjectionEvent == 4){
+  if (videoProjectionEvent == 4) {
     focusChanged(true);
   }
 }
@@ -41,30 +41,12 @@ void AADBus::SbnStatus(bool status) {
   LOG(DEBUG) << "SbnStatus " << status;
 }
 
-AAPA::AAPA(AASignals::Pointer aasignals,
-           const std::shared_ptr<DBus::Connection> &session_connection) :
-    as(std::move(aasignals)) {
-  session_connection->request_name("com.jci.aapa", DBUSCXX_NAME_FLAG_REPLACE_EXISTING);
-
-  androiddbus = new AADBus([this](bool focus){this->focusChanged(focus);});
-
-  adapter = com_jci_aapaInterface::create(androiddbus);
-
-  session_object = com_jci_aapa_objectAdapter::create(session_connection, adapter, "/com/jci/aapa");
-
-  adapter->signal_Available()->emit(1);
-
-  ConnectedConnection = as->connected.connect(sigc::mem_fun(*this, &AAPA::AAConnected));
-
-
-  bucpsa = com_jci_bucpsa_objectProxy::create(session_connection, "com.jci.bucpsa", "/com/jci/bucpsa");
-  bucpsa->getcom_jci_bucpsaInterface()->signal_DisplayMode()->connect(sigc::mem_fun(*this, &AAPA::DisplayMode));
-
+AAPA::AAPA(std::shared_ptr<DBus::Connection> session_connection) : dbusConnection(std::move(session_connection)){
 }
 
 void AAPA::DisplayMode(uint32_t DisplayMode) {
 //   currentDisplayMode != 0 means backup camera wants the screen
-  if ((bool) DisplayMode && _connected) {
+  if ((bool) DisplayMode) {
     focusChanged(false);
   }
 }
@@ -81,11 +63,33 @@ void AAPA::releaseFocus() {
 }
 
 AAPA::~AAPA() {
-  LOG(DEBUG) << "Stopping VideoManager";
-  ConnectedConnection.disconnect();
-  releaseFocus();
+
 }
-void AAPA::AAConnected(bool connected) {
-  LOG(DEBUG) << "AAConnected" << connected;
-  _connected = connected;
+
+void AAPA::start() {
+  LOG(DEBUG) << "Starting AAPA";
+  dbusConnection->request_name("com.jci.aapa", DBUSCXX_NAME_FLAG_REPLACE_EXISTING);
+
+  androiddbus = new AADBus([this](bool focus) { this->focusChanged(focus); });
+
+  adapter = com_jci_aapaInterface::create(androiddbus);
+
+  session_object = com_jci_aapa_objectAdapter::create(dbusConnection, adapter, "/com/jci/aapa");
+
+  adapter->signal_Available()->emit(1);
+
+  bucpsa = com_jci_bucpsa_objectProxy::create(dbusConnection, "com.jci.bucpsa", "/com/jci/bucpsa");
+  displayModeConnection =
+      bucpsa->getcom_jci_bucpsaInterface()->signal_DisplayMode()->connect(sigc::mem_fun(*this, &AAPA::DisplayMode));
+}
+
+void AAPA::stop() {
+  LOG(DEBUG) << "Stopping AAPA";
+  releaseFocus();
+  displayModeConnection.disconnect();
+  bucpsa.reset();
+  session_object.reset();
+  adapter.reset();
+  delete androiddbus;
+  dbusConnection->release_name("com.jci.aapa");
 }

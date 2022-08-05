@@ -22,6 +22,5 @@ class Signals : public sigc::trackable {
 
   explicit Signals(IVideoManager::Pointer VideoManager, AASignals::Pointer AaSignals) : videoManager(std::move(
       VideoManager)), aaSignals(std::move(AaSignals)) {
-
   };
 };

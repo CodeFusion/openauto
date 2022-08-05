@@ -58,7 +58,7 @@ void AndroidAutoEntity::start(IAndroidAutoEntityEventHandler &eventHandler) {
 
     signals_.audioSignals->focusChanged.connect(sigc::mem_fun(*this, &AndroidAutoEntity::onAudioFocusResponse));
     signals_.aaSignals->connected.emit(true);
-    signals_.aaSignals->shutdown.connect(sigc::mem_fun(*this, &AndroidAutoEntity::sendShutdownRequest));
+    signals_.videoManager->start();
 
     auto versionRequestPromise = aasdk::channel::SendPromise::defer(strand_);
     versionRequestPromise->then([]() {}, [&](const aasdk::error::Error &e) { onChannelError(e); });
@@ -78,6 +78,7 @@ void AndroidAutoEntity::stop() {
       messenger_->stop();
       transport_->stop();
       cryptor_->deinit();
+      signals_.videoManager->stop();
       signals_.aaSignals->connected.emit(false);
     } catch (...) {
       LOG(INFO) << "[AndroidAutoEntity] exception in stop.";

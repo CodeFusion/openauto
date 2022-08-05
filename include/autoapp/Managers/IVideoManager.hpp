@@ -14,6 +14,9 @@ class IVideoManager {
   IVideoManager() = default;
   virtual ~IVideoManager() = default;
 
+  virtual void start() = 0;
+  virtual void stop() = 0;
+
   virtual void requestFocus() = 0;
   virtual void releaseFocus() = 0;
 

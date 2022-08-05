@@ -11,12 +11,13 @@
 #include <com_jci_aapa_objectAdapter.h>
 #include <com_jci_bucpsa_objectProxy.h>
 
-class AADBus : public com_jci_aapa {
+class AADBus final : public com_jci_aapa {
  private:
   std::function<void(bool)> focusChanged;
 
  public:
   explicit AADBus(std::function<void(bool)> FocusChanged);
+  ~AADBus() = default;
 
   typedef DBus::MultipleReturn<std::tuple<uint8_t, std::string, std::string, std::string, std::string>,
                                int32_t> NowPlayingInfo;
@@ -43,8 +44,10 @@ class AADBus : public com_jci_aapa {
 
 class AAPA : public IVideoManager {
  private:
+  std::shared_ptr<DBus::Connection> dbusConnection;
   AASignals::Pointer as;
   sigc::connection ConnectedConnection;
+  sigc::connection displayModeConnection;
   std::shared_ptr<com_jci_aapa_objectAdapter> session_object;
   std::shared_ptr<com_jci_aapaInterface> adapter;
   AADBus *androiddbus;
@@ -52,12 +55,13 @@ class AAPA : public IVideoManager {
   bool _connected = false;
 
   void DisplayMode(uint32_t DisplayMode);
-  void AAConnected(bool connected);
 
  public:
-  explicit AAPA(AASignals::Pointer aasignals,
-                const std::shared_ptr<DBus::Connection> &session_connection);
+  explicit AAPA(std::shared_ptr<DBus::Connection> session_connection);
   ~AAPA();
+
+  void start() override;
+  void stop() override;
 
   void requestFocus() override;
   void releaseFocus() override;

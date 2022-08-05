@@ -23,6 +23,9 @@ class VideoManager: public IVideoManager{
   explicit VideoManager(const std::shared_ptr<DBus::Connection> &);
   ~VideoManager();
 
+  void start() override {};
+  void stop() override {};
+
   void requestFocus() override;
   void releaseFocus() override;
 
