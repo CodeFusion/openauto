@@ -21,7 +21,8 @@
 //#include <gps.h>
 #include <aasdk/Channel/Sensor/SensorServiceChannel.hpp>
 #include <autoapp/Service/IService.hpp>
-#include <autoapp/Signals/GpsSignals.hpp>
+#include <autoapp/Managers/IGPSManager.hpp>
+#include <autoapp/Managers/INightManager.hpp>
 
 namespace autoapp::service {
 
@@ -32,33 +33,29 @@ class SensorService
  public:
   SensorService(asio::io_service &ioService,
                 aasdk::messenger::IMessenger::Pointer messenger,
-                GpsSignals::Pointer gpssignals);
-  bool isNight = false;
-  bool previous = false;
-  bool stopPolling = false;
+                IGPSManager::Pointer gpsmanager, INightManager::Pointer NightManager);
 
   void start() override;
   void stop() override;
   void pause() override;
   void resume() override;
   void fillFeatures(aasdk::proto::messages::ServiceDiscoveryResponse &response) override;
-  void onChannelOpenRequest(const aasdk::proto::messages::ChannelOpenRequest &request) override;
-  void onSensorStartRequest(const aasdk::proto::messages::SensorStartRequestMessage &request) override;
-  void onChannelError(const aasdk::error::Error &e) override;
+  void onChannelOpenRequest(const aasdk::proto::messages::ChannelOpenRequest &error) override;
+  void onSensorStartRequest(const aasdk::proto::messages::SensorStartRequestMessage &error) override;
+  void onChannelError(const aasdk::error::Error &error) override;
 
  private:
   using std::enable_shared_from_this<SensorService>::shared_from_this;
   void sendDrivingStatusUnrestricted();
-  void sendNightData();
-  void sendGPSLocationData();
-  void sensorPolling();
-  bool firstRun = true;
+  void sendNightData(bool isNight);
+  void sendGPSLocationData(const aasdk::proto::data::GPSLocation& error);
 
   asio::basic_waitable_timer<std::chrono::steady_clock> timer_;
   asio::io_service::strand strand_;
   aasdk::channel::sensor::SensorServiceChannel::Pointer channel_;
-  GpsSignals::Pointer gpssignals_;
-  sigc::connection signal_returnUpdate_;
+  IGPSManager::Pointer gpsManager;
+  INightManager::Pointer nightManger;
+  int delay = 250; //resend the sensors every x milliseconds
 };
 
 }

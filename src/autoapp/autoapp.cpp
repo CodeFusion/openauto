@@ -38,6 +38,7 @@
 #include <autoapp/Managers/NavigationManager.hpp>
 #include <autoapp/Managers/IVideoManager.hpp>
 #include <autoapp/Configuration/Configuration.hpp>
+#include <autoapp/Managers/NightManager.hpp>
 
 #define MINI_CASE_SENSITIVE
 #include <ini.h>
@@ -195,12 +196,13 @@ int main(int argc, char *argv[]) {
     LOG(DEBUG) << "Using internal Video handling";
     videoManager = std::make_shared<VideoManager>(session_connection);
   }
-  Signals signals = Signals(videoManager, aaSignals);
+  IGPSManager::Pointer gpsManager =  std::make_shared<GPSManager>(ioService, system_connection);
+  INightManager::Pointer nightManager = std::make_shared<NightManager>(ioService);
+  Signals signals = Signals(videoManager, gpsManager, aaSignals, nightManager);
   HttpManager *httpManager;
   httpManager = new HttpManager(videoManager, signals.aaSignals);
 
   AudioManagerClient audioManager(signals.audioSignals, system_connection);
-  GPSManager gpsManager(signals.gpsSignals, system_connection);
   NavigationManager navigationManager(signals.navSignals, system_connection);
 
   aasdk::tcp::TCPWrapper tcpWrapper;

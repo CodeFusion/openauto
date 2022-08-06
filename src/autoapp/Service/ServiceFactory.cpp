@@ -46,7 +46,7 @@ ServiceList ServiceFactory::create(aasdk::messenger::IMessenger::Pointer messeng
   projection::IAudioInput::Pointer audioInput(new projection::AlsaAudioInput(ioService_));
   serviceList.emplace_back(std::make_shared<AudioInputService>(ioService_, messenger, std::move(audioInput)));
   this->createAudioServices(serviceList, messenger);
-  serviceList.emplace_back(std::make_shared<SensorService>(ioService_, messenger, signals_.gpsSignals));
+  serviceList.emplace_back(std::make_shared<SensorService>(ioService_, messenger, signals_.gpsManager, signals_.nightManager));
   serviceList.emplace_back(std::make_shared<NavigationService>(ioService_, messenger, signals_.navSignals));
   serviceList.emplace_back(this->createVideoService(messenger));
   serviceList.emplace_back(this->createBluetoothService(messenger));

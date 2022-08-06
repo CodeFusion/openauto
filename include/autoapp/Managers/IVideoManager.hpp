@@ -1,8 +1,9 @@
 #pragma once
 
+#include <autoapp/Managers/IManager.hpp>
 #include <dbus-cxx.h>
 
-class IVideoManager {
+class IVideoManager: public IManager{
  public:
   using Pointer = std::shared_ptr<IVideoManager>;
   using focusCallback = std::function<void(bool)>;

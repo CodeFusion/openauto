@@ -24,20 +24,19 @@
 namespace autoapp::service {
 
 SensorService::SensorService(asio::io_service &ioService, aasdk::messenger::IMessenger::Pointer messenger,
-                             GpsSignals::Pointer gpssignals)
+                             IGPSManager::Pointer gpsmanager, INightManager::Pointer NightManager)
     : timer_(ioService), strand_(ioService),
       channel_(std::make_shared<aasdk::channel::sensor::SensorServiceChannel>(strand_, std::move(messenger))),
-      gpssignals_(std::move(gpssignals)) {
+      gpsManager(std::move(gpsmanager)), nightManger(std::move(NightManager)) {
 
 }
 
 void SensorService::start() {
   strand_.dispatch([this, self = this->shared_from_this()]() {
-    if (checkNight()) {
-      this->isNight = true;
-    }
-    this->stopPolling = false;
-    this->sensorPolling();
+    gpsManager->registerLocationCallback([this](const aasdk::proto::data::GPSLocation &location) {
+      this->sendGPSLocationData(location);
+    });
+    nightManger->registerNightCallback([this](bool isNight) { this->sendNightData(isNight); });
 
     LOG(INFO) << "[SensorService] start.";
     channel_->receive(this->shared_from_this());
@@ -46,7 +45,8 @@ void SensorService::start() {
 }
 
 void SensorService::stop() {
-  this->stopPolling = true;
+  gpsManager->stop();
+  nightManger->stop();
   LOG(INFO) << "[SensorService] stop.";
 }
 
@@ -83,7 +83,7 @@ void SensorService::onChannelOpenRequest(const aasdk::proto::messages::ChannelOp
   response.set_status(status);
 
   auto promise = aasdk::channel::SendPromise::defer(strand_);
-  promise->then([]() {}, [&](const aasdk::error::Error &e) { onChannelError(e); });
+  promise->then([]() {}, [&](const aasdk::error::Error &error) { onChannelError(error); });
   channel_->sendChannelOpenResponse(response, std::move(promise));
 
   channel_->receive(this->shared_from_this());
@@ -99,15 +99,15 @@ void SensorService::onSensorStartRequest(const aasdk::proto::messages::SensorSta
 
   if (request.sensor_type() == aasdk::proto::enums::SensorType::DRIVING_STATUS) {
     promise->then([&]() { sendDrivingStatusUnrestricted(); },
-                  [&](const aasdk::error::Error &e) { onChannelError(e); });
+                  [&](const aasdk::error::Error &error) { onChannelError(error); });
   } else if (request.sensor_type() == aasdk::proto::enums::SensorType::NIGHT_DATA) {
-    promise->then([&]() { sendNightData(); },
-                  [&](const aasdk::error::Error &e) { onChannelError(e); });
+    promise->then([&]() { nightManger->start(); },
+                  [&](const aasdk::error::Error &error) { onChannelError(error); });
   } else if (request.sensor_type() == aasdk::proto::enums::SensorType::LOCATION) {
-    promise->then([&]() { sendGPSLocationData(); },
-                  [&](const aasdk::error::Error &e) { onChannelError(e); });
+    promise->then([&]() { gpsManager->start(); },
+                  [&](const aasdk::error::Error &error) { onChannelError(error); });
   } else {
-    promise->then([]() {}, [&](const aasdk::error::Error &e) { onChannelError(e); });
+    promise->then([]() {}, [&](const aasdk::error::Error &error) { onChannelError(error); });
   }
 
   channel_->sendSensorStartResponse(response, std::move(promise));
@@ -119,14 +119,14 @@ void SensorService::sendDrivingStatusUnrestricted() {
   indication.add_driving_status()->set_status(aasdk::proto::enums::DrivingStatus::UNRESTRICTED);
 
   auto promise = aasdk::channel::SendPromise::defer(strand_);
-  promise->then([]() {}, [&](const aasdk::error::Error &e) { onChannelError(e); });
+  promise->then([]() {}, [&](const aasdk::error::Error &error) { onChannelError(error); });
   channel_->sendSensorEventIndication(indication, std::move(promise));
 }
 
-void SensorService::sendNightData() {
+void SensorService::sendNightData(bool isNight) {
   aasdk::proto::messages::SensorEventIndication indication;
 
-  if (SensorService::isNight) {
+  if (isNight) {
     LOG(INFO) << "[SensorService] Mode night triggered";
     indication.add_night_mode()->set_is_night(true);
   } else {
@@ -135,61 +135,28 @@ void SensorService::sendNightData() {
   }
 
   auto promise = aasdk::channel::SendPromise::defer(strand_);
-  promise->then([]() {}, [&](const aasdk::error::Error &e) { onChannelError(e); });
+  promise->then([]() {}, [&](const aasdk::error::Error &error) { onChannelError(error); });
   channel_->sendSensorEventIndication(indication, std::move(promise));
-  if (this->firstRun) {
-    this->firstRun = false;
-    this->previous = this->isNight;
-  }
 }
 
-void SensorService::sendGPSLocationData() {
-  aasdk::proto::data::GPSLocation gps = gpssignals_->requestUpdate.emit();
+void SensorService::sendGPSLocationData(const aasdk::proto::data::GPSLocation &location) {
 
-  if (!gps.has_accuracy()) {
+  if (!location.has_accuracy()) {
     return;
   }
 
   aasdk::proto::messages::SensorEventIndication indication;
   auto *locInd = indication.add_gps_location();
-  locInd->CopyFrom(gps);
+  locInd->CopyFrom(location);
 
   auto promise = aasdk::channel::SendPromise::defer(strand_);
-  promise->then([]() {}, [&](const aasdk::error::Error &e) { onChannelError(e); });
+  promise->then([]() {}, [&](const aasdk::error::Error &error) { onChannelError(error); });
   channel_->sendSensorEventIndication(indication, std::move(promise));
 }
 
-void SensorService::sensorPolling() {
-  if (!this->stopPolling) {
-    strand_.dispatch([this, self = this->shared_from_this()]() {
-      this->isNight = checkNight();
-      if (this->previous != this->isNight && !this->firstRun) {
-        this->previous = this->isNight;
-        this->sendNightData();
-      }
-      this->sendGPSLocationData();
-      timer_.expires_from_now(std::chrono::milliseconds(250));
-      timer_.async_wait(strand_.wrap([this](asio::error_code ec) { this->sensorPolling(); }));
-    });
-  }
-}
-
-void SensorService::onChannelError(const aasdk::error::Error &e) {
-  LOG(ERROR) << "[SensorService] channel error: " << e.what();
+void SensorService::onChannelError(const aasdk::error::Error &error) {
+  LOG(ERROR) << "[SensorService] channel error: " << error.what();
 }
 
 }
 
-bool checkNight() {
-  bool nightmodenow = false;
-  char gpio_value[3];
-  FILE *fd = fopen("/sys/class/gpio/CAN_Day_Mode/value", "r");
-  if (fd == nullptr) {
-    LOG(ERROR) << "Failed to open CAN_Day_Mode gpio value for reading";
-  } else {
-    fread(gpio_value, 1, 2, fd);
-    nightmodenow = (gpio_value[0] == '0');
-  }
-  fclose(fd);
-  return nightmodenow;
-}
