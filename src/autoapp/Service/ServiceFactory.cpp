@@ -68,7 +68,7 @@ IService::Pointer ServiceFactory::createBluetoothService(aasdk::messenger::IMess
 
 IService::Pointer ServiceFactory::createInputService(aasdk::messenger::IMessenger::Pointer messenger) {
   projection::IInputDevice::Pointer
-      inputDevice(std::make_shared<projection::InputDevice>(ioService_, signals_.audioSignals, signals_.videoManager));
+      inputDevice(std::make_shared<projection::InputDevice>(ioService_, signals_.audioManager, signals_.videoManager));
 
   return std::make_shared<InputService>(ioService_, messenger, std::move(inputDevice));
 }
@@ -82,7 +82,7 @@ void ServiceFactory::createAudioServices(ServiceList &serviceList,
                                                           messenger,
                                                           aasdk::messenger::ChannelId::MEDIA_AUDIO,
                                                           std::move(mediaOutputs),
-                                                          signals_.audioSignals));
+                                                          signals_.audioManager));
 
   //Setup two outputs for this, as Android Auto doesn't mix the speech and entertainment channels automagically
   auto speechAudioOutput1 = std::make_shared<projection::AlsaAudioOutput>(1, 16000, "informationNavi");
@@ -94,7 +94,7 @@ void ServiceFactory::createAudioServices(ServiceList &serviceList,
                                                           messenger,
                                                           aasdk::messenger::ChannelId::SPEECH_AUDIO,
                                                           std::move(speechOutputs),
-                                                          signals_.audioSignals));
+                                                          signals_.audioManager));
 
 //  auto systemAudioOutput = std::make_shared<projection::AlsaAudioOutput>(1, 16000, "vrGeneric");
 //  serviceList.emplace_back(std::make_shared<SystemAudioService>(ioService_,

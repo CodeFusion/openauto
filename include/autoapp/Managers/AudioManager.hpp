@@ -2,7 +2,7 @@
 #include <dbus-cxx.h>
 #include <nlohmann/json.hpp>
 
-#include <autoapp/Signals/AudioSignals.hpp>
+#include <autoapp/Managers/IAudioManager.hpp>
 
 #include <com_xsembedded_ServiceProvider_objectProxy.h>
 
@@ -21,20 +21,21 @@ struct Stream {
   std::string type;
 };
 
-class AudioManagerClient {
+class AudioManager: public IAudioManager {
  private:
-  AudioSignals::Pointer audiosignals_;
   bool inCall = false;
   std::vector<std::string> MazdaDestinations;
   std::map<aasdk::messenger::ChannelId, Stream *> streams;
 //  std::map<std::string, int> ExistingStreams;
   std::map<int, Stream *> streamsByID;
 
+  std::shared_ptr<DBus::Connection> dbusConnection;
   std::shared_ptr<com_xsembedded_ServiceProvider_objectProxy> AudioInterface;
   std::shared_ptr<com_xsembedded_ServiceProviderProxy> AudioProxy;
   std::shared_ptr<DBus::Object> AudioObject;
+  std::shared_ptr<DBus::Interface> AudioRequestInterface;
 
-  std::shared_ptr<DBus::Connection> connection;
+  sigc::connection notifyConnection;
 
   std::shared_ptr<DBus::ObjectProxy> object;
 
@@ -52,14 +53,17 @@ class AudioManagerClient {
   std::string RequestHandler(const std::string &methodName, const std::string &arguments);
 
  public:
-  AudioManagerClient(AudioSignals::Pointer audiosignals, const std::shared_ptr<DBus::Connection> &);
+  AudioManager(const std::shared_ptr<DBus::Connection> &);
 
-  ~AudioManagerClient();
+  ~AudioManager();
+
+  void start() override;
+  void stop() override;
 
   //calling requestAudioFocus directly doesn't work on the audio mgr
-  void audioMgrRequestAudioFocus(aasdk::messenger::ChannelId, aasdk::proto::enums::AudioFocusType_Enum aa_type);
+  void requestFocus(aasdk::messenger::ChannelId channelId, aasdk::proto::enums::AudioFocusType_Enum aa_type) override;
 
-  void audioMgrReleaseAudioFocus(aasdk::messenger::ChannelId);
+  void releaseFocus(aasdk::messenger::ChannelId channelId) override;
 
   static void onNotify(const std::string &signalName, const std::string &payload);
 

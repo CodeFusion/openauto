@@ -77,12 +77,12 @@ AudioService::AudioService(asio::io_service &ioService,
                            aasdk::messenger::IMessenger::Pointer messenger,
                            aasdk::messenger::ChannelId channelID,
                            std::vector<projection::IAudioOutput::Pointer> audioOutput,
-                           AudioSignals::Pointer audiosignals)
+                           IAudioManager::Pointer AudioManager)
     : strand_(ioService),
       WriterStrand(ioService),
       audioOutput_(std::move(audioOutput)),
       session_(-1),
-      audiosignals_(std::move(audiosignals)),
+      audioManager(std::move(AudioManager)),
       timer_(ioService) {
   channel_ = std::make_shared<aasdk::channel::av::AudioServiceChannel>(strand_, std::move(messenger), channelID);
 }
@@ -210,7 +210,7 @@ void AudioService::onAVChannelStartIndication(const aasdk::proto::messages::AVCh
                       error != aasdk::error::ErrorCode::OPERATION_IN_PROGRESS) {
                     LOG(ERROR) << "[AndroidAutoEntity] Audio timer exceeded. Channel "
                                << aasdk::messenger::channelIdToString(this->channel_->getId());
-                    this->audiosignals_->focusRelease(this->channel_->getId());
+                    this->audioManager->releaseFocus(this->channel_->getId());
                   }
                 });
   timer_.request(std::move(promise));
@@ -270,8 +270,8 @@ void AudioService::onAVMediaIndication(const aasdk::common::DataConstBuffer &buf
   this->onAVMediaWithTimestampIndication(0, buffer);
 }
 
-void AudioService::onChannelError(const aasdk::error::Error &e) {
-  LOG(ERROR) << "[AudioService] channel error: " << e.what()
+void AudioService::onChannelError(const aasdk::error::Error &error) {
+  LOG(ERROR) << "[AudioService] channel error: " << error.what()
              << ", channel: " << aasdk::messenger::channelIdToString(channel_->getId());
 }
 

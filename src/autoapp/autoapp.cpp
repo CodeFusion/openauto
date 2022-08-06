@@ -198,11 +198,12 @@ int main(int argc, char *argv[]) {
   }
   IGPSManager::Pointer gpsManager =  std::make_shared<GPSManager>(ioService, system_connection);
   INightManager::Pointer nightManager = std::make_shared<NightManager>(ioService);
-  Signals signals = Signals(videoManager, gpsManager, aaSignals, nightManager);
+  IAudioManager::Pointer audioManager = std::make_shared<AudioManager>(system_connection);
+
+  Signals signals = Signals(videoManager, audioManager, gpsManager, aaSignals, nightManager);
   HttpManager *httpManager;
   httpManager = new HttpManager(videoManager, signals.aaSignals);
 
-  AudioManagerClient audioManager(signals.audioSignals, system_connection);
   NavigationManager navigationManager(signals.navSignals, system_connection);
 
   aasdk::tcp::TCPWrapper tcpWrapper;
@@ -233,7 +234,6 @@ int main(int argc, char *argv[]) {
     sleep(1);
   }
 
-  signals.audioSignals->focusRelease.emit(aasdk::messenger::ChannelId::MEDIA_AUDIO);
   sleep(2);
 
   delete httpManager;

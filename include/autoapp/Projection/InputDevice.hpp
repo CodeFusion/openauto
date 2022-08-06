@@ -42,7 +42,7 @@ namespace autoapp::projection {
 class InputDevice : public IInputDevice {
 
  public:
-  InputDevice(asio::io_service &ioService, AudioSignals::Pointer audiosignals, IVideoManager::Pointer videosignals);
+  InputDevice(asio::io_service &ioService, IAudioManager::Pointer AudioManager, IVideoManager::Pointer videosignals);
 
   void start(IInputDeviceEventHandler &eventHandler) override;
 
@@ -57,7 +57,7 @@ class InputDevice : public IInputDevice {
  private:
   asio::basic_waitable_timer<std::chrono::steady_clock> timer_;
   asio::io_service::strand strand_;
-  AudioSignals::Pointer audiosignals_;
+  IAudioManager::Pointer audioManager;
   IVideoManager::Pointer videoManger;
   IInputDeviceEventHandler *eventHandler_;
   std::mutex mutex_;
@@ -75,13 +75,13 @@ class InputDevice : public IInputDevice {
   sigc::connection audioFocusChanged;
   sigc::connection videoFocusChanged;
 
-  void handle_key(input_event *ev);
+  void handle_key(input_event *inputEvent);
 
-  void handle_touch(input_event *ev);
+  void handle_touch(input_event *inputEvent);
 
   void audio_focus(aasdk::messenger::ChannelId channel_id, aasdk::proto::enums::AudioFocusState_Enum state);
   void video_focus(bool state);
-  void poll(asio::error_code ec);
+  void poll(asio::error_code error);
   bool canceled_;
 };
 }

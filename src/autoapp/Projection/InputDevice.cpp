@@ -27,11 +27,11 @@ using ButtonCode = aasdk::proto::enums::ButtonCode;
 namespace autoapp::projection {
 
 InputDevice::InputDevice(asio::io_service &ioService,
-                         AudioSignals::Pointer audiosignals,
+                         IAudioManager::Pointer AudioManager,
                          IVideoManager::Pointer videosignals) :
     timer_(ioService),
     strand_(ioService),
-    audiosignals_(std::move(audiosignals)),
+    audioManager(std::move(AudioManager)),
     videoManger(std::move(videosignals)),
     eventHandler_(nullptr),
     canceled_(false) {
@@ -54,7 +54,8 @@ InputDevice::InputDevice(asio::io_service &ioService,
       {KEY_M, ButtonCode::SCROLL_WHEEL},
       {KEY_E, ButtonCode::MEDIA}
   };
-  audioFocusChanged = audiosignals_->focusChanged.connect(sigc::mem_fun(*this, &InputDevice::audio_focus));
+  audioManager->registerFocusCallback([this](aasdk::messenger::ChannelId channelId,
+                                             aasdk::proto::enums::AudioFocusState_Enum focus){this->audio_focus(channelId, focus);});
   videoManger->registerFocus([this](bool focus){this->video_focus(focus);});
 }
 
@@ -138,8 +139,8 @@ void InputDevice::start(IInputDeviceEventHandler &eventHandler) {
 
 }
 
-void InputDevice::poll(asio::error_code ec) {
-  if (ec == asio::error::operation_aborted || canceled_) {
+void InputDevice::poll(asio::error_code error) {
+  if (error == asio::error::operation_aborted || canceled_) {
     return;
   }
   int rc = 0;
@@ -230,26 +231,26 @@ TouchscreenSize InputDevice::getTouchscreenGeometry() const {
   return TouchscreenSize{480, 800};
 }
 
-void InputDevice::handle_key(input_event *ev) {
+void InputDevice::handle_key(input_event *inputEvent) {
   std::chrono::steady_clock::time_point tpNow = std::chrono::steady_clock::now();
 
-  if (ev->type == EV_KEY && (ev->value == 1 || ev->value == 0)) {
+  if (inputEvent->type == EV_KEY && (inputEvent->value == 1 || inputEvent->value == 0)) {
     ButtonCode::Enum scanCode;
     WheelDirection direction = WheelDirection::NONE;
-    ButtonEventType eventType = (ev->value == 1) ? ButtonEventType::PRESS
-                                                 : ButtonEventType::RELEASE;
-    bool isPressed = (ev->value == 1);
+    ButtonEventType eventType = (inputEvent->value == 1) ? ButtonEventType::PRESS
+                                                         : ButtonEventType::RELEASE;
+    bool isPressed = (inputEvent->value == 1);
     bool hasMediaAudioFocus = audiofocus != aasdk::proto::enums::AudioFocusState_Enum_LOSS;
 
-    scanCode = keymap[ev->code];
+    scanCode = keymap[inputEvent->code];
     if (scanCode == ButtonCode::NEXT || scanCode == ButtonCode::PREV) {
       if (!hasMediaAudioFocus && videoFocus_) {
         if (std::chrono::duration_cast<std::chrono::milliseconds>(tpNow - mediaDebounce).count() > 200
-            && ev->value == 1) {
+            && inputEvent->value == 1) {
           libevdev_grab(keyboard_dev, LIBEVDEV_UNGRAB);
-          libevdev_uinput_write_event(ui_dev, ev->type, ev->code, 1);
+          libevdev_uinput_write_event(ui_dev, inputEvent->type, inputEvent->code, 1);
           libevdev_uinput_write_event(ui_dev, EV_SYN, SYN_REPORT, 0);
-          libevdev_uinput_write_event(ui_dev, ev->type, ev->code, 0);
+          libevdev_uinput_write_event(ui_dev, inputEvent->type, inputEvent->code, 0);
           libevdev_uinput_write_event(ui_dev, EV_SYN, SYN_REPORT, 0);
           mediaDebounce = tpNow;
           libevdev_grab(keyboard_dev, LIBEVDEV_GRAB);
@@ -258,11 +259,11 @@ void InputDevice::handle_key(input_event *ev) {
       }
     }
     if (scanCode == ButtonCode::SCROLL_WHEEL) {
-      if (ev->value == 0) {
+      if (inputEvent->value == 0) {
         eventType = ButtonEventType::NONE;
-        if (ev->code == KEY_M) {
+        if (inputEvent->code == KEY_M) {
           direction = WheelDirection::RIGHT;
-        } else if (ev->code == KEY_N) {
+        } else if (inputEvent->code == KEY_N) {
           direction = WheelDirection::LEFT;
         }
       } else {
@@ -280,7 +281,7 @@ void InputDevice::handle_key(input_event *ev) {
       if (now - pressedSince >= 2) {
         switch (pressScanCode) {
           case ButtonCode::MEDIA:LOG(DEBUG) << "Release Audio Focus";
-            audiosignals_->focusRelease.emit(aasdk::messenger::ChannelId::MEDIA_AUDIO);
+            audioManager->releaseFocus(aasdk::messenger::ChannelId::MEDIA_AUDIO);
             return;
           case ButtonCode::BACK: // We use both these buttons for releasing focus, so fall through to the next case.
           case ButtonCode::CALL_END:LOG(DEBUG) << "Release Video Focus";
@@ -301,21 +302,21 @@ void InputDevice::handle_key(input_event *ev) {
   }
 }
 
-void InputDevice::handle_touch(input_event *ev) {
-  switch (ev->type) {
+void InputDevice::handle_touch(input_event *inputEvent) {
+  switch (inputEvent->type) {
     case EV_ABS:
-      switch (ev->code) {
-        case ABS_MT_POSITION_X:mTouch.x = static_cast<uint32_t>(ev->value * 800 / 4095);
+      switch (inputEvent->code) {
+        case ABS_MT_POSITION_X:mTouch.x = static_cast<uint32_t>(inputEvent->value * 800 / 4095);
           break;
-        case ABS_MT_POSITION_Y:mTouch.y = static_cast<uint32_t>(ev->value * 480 / 4095);
+        case ABS_MT_POSITION_Y:mTouch.y = static_cast<uint32_t>(inputEvent->value * 480 / 4095);
           break;
         default:break;
       }
       break;
     case EV_KEY:
-      if (ev->code == BTN_TOUCH) {
+      if (inputEvent->code == BTN_TOUCH) {
         mTouch.action_recvd = 1;
-        if (ev->value == 1) {
+        if (inputEvent->value == 1) {
           mTouch.action = aasdk::proto::enums::TouchAction::PRESS;
         } else {
           mTouch.action = aasdk::proto::enums::TouchAction::RELEASE;

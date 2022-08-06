@@ -22,14 +22,14 @@
 #include <aasdk/Channel/AV/IAudioServiceChannelEventHandler.hpp>
 #include <autoapp/Projection/IAudioOutput.hpp>
 #include <autoapp/Service/IService.hpp>
-#include <autoapp/Signals/AudioSignals.hpp>
+#include <autoapp/Managers/IAudioManager.hpp>
 #include "aasdk/Messenger/IMessenger.hpp"
 
 namespace autoapp::service {
 
 class AudioTimer {
  public:
-  typedef aasdk::io::Promise<void> Promise;
+  using Promise = aasdk::io::Promise<void>;
 
   explicit AudioTimer(asio::io_service &ioService);
   void request(Promise::Pointer promise);
@@ -54,13 +54,13 @@ class AudioService
       public IService,
       public std::enable_shared_from_this<AudioService> {
  public:
-  typedef std::shared_ptr<AudioService> Pointer;
+  using Pointer = std::shared_ptr<AudioService>;
 
   AudioService(asio::io_service &ioService,
                aasdk::messenger::IMessenger::Pointer messenger,
                aasdk::messenger::ChannelId channelID,
                std::vector<projection::IAudioOutput::Pointer> audioOutput,
-               AudioSignals::Pointer audiosignals);
+               IAudioManager::Pointer AudioManager);
 
   ~AudioService() noexcept override;
 
@@ -76,17 +76,18 @@ class AudioService
   void onAVMediaWithTimestampIndication(aasdk::messenger::Timestamp::ValueType timestamp,
                                         const aasdk::common::DataConstBuffer &buffer) override;
   void onAVMediaIndication(const aasdk::common::DataConstBuffer &buffer) override;
-  void onChannelError(const aasdk::error::Error &e) override;
+  void onChannelError(const aasdk::error::Error &error) override;
 
  protected:
   using std::enable_shared_from_this<AudioService>::shared_from_this;
 
+ private:
   asio::io_service::strand strand_;
   asio::io_service::strand WriterStrand;
   aasdk::channel::av::IAudioServiceChannel::Pointer channel_;
   std::vector<projection::IAudioOutput::Pointer> audioOutput_;
   int32_t session_;
-  AudioSignals::Pointer audiosignals_;
+  IAudioManager::Pointer audioManager;
   AudioTimer timer_;
 };
 
