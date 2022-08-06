@@ -42,4 +42,7 @@ void NightManager::checkNight(const asio::error_code &error) {
 
   updateNight(nightmodenow);
 
+  timer.expires_after(std::chrono::milliseconds(delay));
+  timer.async_wait([this](const asio::error_code &error) { this->checkNight(error); });
+
 }
