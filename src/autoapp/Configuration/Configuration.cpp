@@ -34,7 +34,7 @@ Configuration::Configuration() {
       enableTouchscreen_ = config["enableTouchscreen"].as_boolean();
     }
     if (config.contains("wifiPort")) {
-      wifiPort_ = static_cast<uint32_t>(static_cast<long long>(*config["wifiPort"].as_integer()));
+      wifiPort_ = static_cast<uint32_t>(config["wifiPort"].as_integer()->value_or(30515));
     }
     if (config.contains("logLevel")) {
       std::optional<std::string> level = config["logLevel"].value<std::string>();
