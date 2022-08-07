@@ -17,13 +17,20 @@
 
 #include <com_jci_bca_objectProxy.h>
 
-class BluetoothManager {
+#include <autoapp/Managers/IBluetoothManager.hpp>
+
+class BluetoothManager : public IBluetoothManager {
  public:
   explicit BluetoothManager(autoapp::configuration::IConfiguration::Pointer configuration,
-                            const std::shared_ptr<DBus::Connection> &session_connection);
-  ~BluetoothManager();
+                            std::shared_ptr<DBus::Connection> session_connection);
+  ~BluetoothManager() override;
+
+  void start() override;
+  void stop() override;
+
  private:
   autoapp::configuration::IConfiguration::Pointer configuration_;
+  std::shared_ptr<DBus::Connection> dbusConnection;
   bool bdsconfigured = false;
   uint32_t serviceId = 0;
   std::shared_ptr<com_jci_bca_objectProxy> bcaClient;

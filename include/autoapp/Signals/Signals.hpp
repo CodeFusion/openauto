@@ -10,6 +10,8 @@
 #include "autoapp/Managers/IGPSManager.hpp"
 #include <autoapp/Managers/INightManager.hpp>
 #include <autoapp/Managers/IAudioManager.hpp>
+#include <autoapp/Managers/IBluetoothManager.hpp>
+
 
 class Signals : public sigc::trackable {
  public:
@@ -21,16 +23,19 @@ class Signals : public sigc::trackable {
   AASignals::Pointer aaSignals;
   NavigationSignals::Pointer navSignals = std::make_shared<NavigationSignals>();
   INightManager::Pointer nightManager;
+  IBluetoothManager::Pointer bluetoothManager;
 
   explicit Signals(IVideoManager::Pointer VideoManager,
                    IAudioManager::Pointer AudioManager,
                    IGPSManager::Pointer GPSManager,
                    AASignals::Pointer AaSignals,
-                   INightManager::Pointer NightManager) :
+                   INightManager::Pointer NightManager,
+                   IBluetoothManager::Pointer BluetoothManager) :
       videoManager(std::move(VideoManager)),
       audioManager(std::move(AudioManager)),
       gpsManager(std::move(GPSManager)),
       aaSignals(std::move(AaSignals)),
-      nightManager(std::move(NightManager)) {
+      nightManager(std::move(NightManager)),
+      bluetoothManager(std::move(BluetoothManager)){
   };
 };

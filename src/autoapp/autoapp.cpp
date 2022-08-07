@@ -18,7 +18,6 @@
 
 #include <thread>
 
-#include <dbus-cxx.h>
 
 #include <aasdk/USB/USBHub.hpp>
 #include <aasdk/USB/ConnectedAccessoriesEnumerator.hpp>
@@ -29,19 +28,9 @@
 #include <autoapp/Service/AndroidAutoEntityFactory.hpp>
 #include <autoapp/Service/ServiceFactory.hpp>
 #include <easylogging++.h>
-#include <autoapp/Managers/VideoManager.hpp>
-#include <autoapp/Managers/AAPA.hpp>
-#include <autoapp/Managers/AudioManager.hpp>
-#include <autoapp/Managers/GPSManager.hpp>
-#include <autoapp/Managers/HttpManager.hpp>
-#include <autoapp/Managers/BluetoothManager.hpp>
-#include <autoapp/Managers/NavigationManager.hpp>
-#include <autoapp/Managers/IVideoManager.hpp>
 #include <autoapp/Configuration/Configuration.hpp>
-#include <autoapp/Managers/NightManager.hpp>
-
-#define MINI_CASE_SENSITIVE
-#include <ini.h>
+#include "autoapp/Platform/mazda.hpp"
+#include "autoapp/Platform/IPlatform.hpp"
 
 using ThreadPool = std::vector<std::thread>;
 
@@ -104,26 +93,9 @@ void signalHandler(int signum) {
   }
 }
 
-bool checkAapaVersion() {
-  mINI::INIFile file("/jci/version.ini");
-  mINI::INIStructure ini;
-  file.read(ini);
-  return ini["VersionInfo"].has("JCI_BLM_AAPA-IHU");
-}
-
 int main(int argc, char *argv[]) {
   auto start_time = std::chrono::high_resolution_clock::now();
-  /* Do some Mazda Specific Setup */
-  setenv("DBUS_SYSTEM_BUS_ADDRESS", "unix:path=/tmp/dbus_service_socket", 1);
-  setenv("DBUS_SESSION_BUS_ADDRESS", "unix:path=/tmp/dbus_hmi_socket", 1);
 
-  int fd;
-  fd = open("/sys/bus/usb/devices/usb1/authorized_default", O_WRONLY);
-  write(fd, "1", 1);
-  close(fd);
-  fd = open("/sys/bus/usb/devices/usb2/authorized_default", O_WRONLY);
-  write(fd, "1", 1);
-  close(fd);
 
   /*                              */
 
@@ -171,49 +143,27 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
+
   asio::io_service ioService;
   asio::io_service::work work(ioService);
   std::vector<std::thread> threadPool;
   usbThreadPool usb_thread_pool(usbContext);
   startIOServiceWorkers(ioService, threadPool);
 
+  IPlatform::Pointer device;
 
-//  DBus::set_logging_function(DBus::log_std_err);
-//  DBus::set_log_level(SL_TRACE);
-  std::shared_ptr<DBus::Dispatcher> dispatcher = DBus::StandaloneDispatcher::create();
-  std::shared_ptr<DBus::Connection> session_connection = dispatcher->create_connection(DBus::BusType::SESSION);
-  std::shared_ptr<DBus::Connection> system_connection = dispatcher->create_connection(DBus::BusType::SYSTEM);
-
-
-  //Define thise here, to prevent them from falling out-of-scope outside the if statements.
-  IVideoManager::Pointer videoManager;
-  AASignals::Pointer aaSignals = std::make_shared<AASignals>();
-
-  if (checkAapaVersion()) {
-    LOG(DEBUG) << "Using Mazda Android Auto Video";
-    videoManager = std::make_shared<AAPA>(session_connection);
-  } else {
-    LOG(DEBUG) << "Using internal Video handling";
-    videoManager = std::make_shared<VideoManager>(session_connection);
-  }
-  IGPSManager::Pointer gpsManager =  std::make_shared<GPSManager>(ioService, system_connection);
-  INightManager::Pointer nightManager = std::make_shared<NightManager>(ioService);
-  IAudioManager::Pointer audioManager = std::make_shared<AudioManager>(system_connection);
-
-  Signals signals = Signals(videoManager, audioManager, gpsManager, aaSignals, nightManager);
-  HttpManager *httpManager;
-  httpManager = new HttpManager(videoManager, signals.aaSignals);
-
-  NavigationManager navigationManager(signals.navSignals, system_connection);
+#ifdef BUILD_MAZDA
+  device = std::make_shared<Mazda>(ioService, configuration);
+#endif
 
   aasdk::tcp::TCPWrapper tcpWrapper;
 
   aasdk::usb::USBWrapper usbWrapper(usbContext);
   aasdk::usb::AccessoryModeQueryFactory queryFactory(usbWrapper, ioService);
   aasdk::usb::AccessoryModeQueryChainFactory queryChainFactory(usbWrapper, ioService, queryFactory);
-  autoapp::service::ServiceFactory serviceFactory(ioService, configuration, signals);
+  autoapp::service::ServiceFactory serviceFactory(ioService, configuration, device->signals);
   autoapp::service::AndroidAutoEntityFactory
-      androidAutoEntityFactory(ioService, configuration, serviceFactory, signals);
+      androidAutoEntityFactory(ioService, configuration, serviceFactory, device->signals);
   auto usbHub(std::make_shared<aasdk::usb::USBHub>(usbWrapper, ioService, queryChainFactory));
   auto connectedAccessoriesEnumerator
       (std::make_shared<aasdk::usb::ConnectedAccessoriesEnumerator>(usbWrapper, ioService, queryChainFactory));
@@ -227,16 +177,16 @@ int main(int argc, char *argv[]) {
 
   app->waitForUSBDevice();
 
-  // This needs to happen after the rest of openauto is set up, so it goes here.
-  BluetoothManager bluetoothManager(configuration, session_connection);
+  device->signals->bluetoothManager->start();
 
   while (running) {
     sleep(1);
   }
 
+  device->signals->bluetoothManager->stop();
+
   sleep(2);
 
-  delete httpManager;
   LOG(DEBUG) << "Calling app->stop()";
   app->stop();
   LOG(DEBUG) << "Stopping ioService";

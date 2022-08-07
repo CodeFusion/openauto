@@ -28,7 +28,7 @@ class ServiceFactory : public IServiceFactory {
  public:
   ServiceFactory(asio::io_service &ioService,
                  configuration::IConfiguration::Pointer configuration,
-                 const Signals &signals);
+                  Signals::Pointer signals);
   ServiceList create(aasdk::messenger::IMessenger::Pointer messenger) override;
 
  private:
@@ -39,7 +39,7 @@ class ServiceFactory : public IServiceFactory {
 
   asio::io_service &ioService_;
   configuration::IConfiguration::Pointer configuration_;
-  Signals signals_;
+  Signals::Pointer signals_;
 };
 
 }

@@ -29,7 +29,7 @@ AndroidAutoEntity::AndroidAutoEntity(asio::io_service &ioService,
                                      configuration::IConfiguration::Pointer configuration,
                                      ServiceList serviceList,
                                      IPinger::Pointer pinger,
-                                     const Signals &signals,
+                                     Signals::Pointer signals,
                                      AudioFocusRequest::Pointer audioFocusRequest)
     : strand_(ioService),
       cryptor_(std::move(cryptor)),
@@ -56,14 +56,14 @@ void AndroidAutoEntity::start(IAndroidAutoEntityEventHandler &eventHandler) {
     std::for_each(serviceList_.begin(), serviceList_.end(), [](IService::Pointer &service) { service->start(); });
     this->schedulePing();
 
-    signals_.audioManager->registerFocusCallback([this](aasdk::messenger::ChannelId channelId,
+    signals_->audioManager->registerFocusCallback([this](aasdk::messenger::ChannelId channelId,
                                                         aasdk::proto::enums::AudioFocusState_Enum focus) {
       this->onAudioFocusResponse(channelId,
                                  focus);
     });
-    signals_.aaSignals->connected.emit(true);
-    signals_.videoManager->start();
-    signals_.audioManager->start();
+    signals_->aaSignals->connected.emit(true);
+    signals_->videoManager->start();
+    signals_->audioManager->start();
 
     auto versionRequestPromise = aasdk::channel::SendPromise::defer(strand_);
     versionRequestPromise->then([]() {}, [&](const aasdk::error::Error &e) { onChannelError(e); });
@@ -83,9 +83,9 @@ void AndroidAutoEntity::stop() {
       messenger_->stop();
       transport_->stop();
       cryptor_->deinit();
-      signals_.videoManager->stop();
-      signals_.audioManager->stop();
-      signals_.aaSignals->connected.emit(false);
+      signals_->videoManager->stop();
+      signals_->audioManager->stop();
+      signals_->aaSignals->connected.emit(false);
     } catch (...) {
       LOG(INFO) << "[AndroidAutoEntity] exception in stop.";
     }
@@ -220,7 +220,7 @@ void AndroidAutoEntity::onAudioFocusRequest(const aasdk::proto::messages::AudioF
 
     case aasdk::proto::enums::AudioFocusType_Enum_NONE:break;
     case aasdk::proto::enums::AudioFocusType_Enum_GAIN:
-      signals_.audioManager->requestFocus(aasdk::messenger::ChannelId::MEDIA_AUDIO,
+      signals_->audioManager->requestFocus(aasdk::messenger::ChannelId::MEDIA_AUDIO,
                                           request.audio_focus_type());
       break;
     case aasdk::proto::enums::AudioFocusType_Enum_GAIN_TRANSIENT:
@@ -228,11 +228,11 @@ void AndroidAutoEntity::onAudioFocusRequest(const aasdk::proto::messages::AudioF
 //                                          request.audio_focus_type());
 //      break;
     case aasdk::proto::enums::AudioFocusType_Enum_GAIN_TRANSIENT_MAY_DUCK:
-      signals_.audioManager->requestFocus(aasdk::messenger::ChannelId::SPEECH_AUDIO,
+      signals_->audioManager->requestFocus(aasdk::messenger::ChannelId::SPEECH_AUDIO,
                                           request.audio_focus_type());
       break;
     case aasdk::proto::enums::AudioFocusType_Enum_RELEASE:
-      signals_.audioManager->releaseFocus(aasdk::messenger::ChannelId::NONE);
+      signals_->audioManager->releaseFocus(aasdk::messenger::ChannelId::NONE);
 //      onAudioFocusResponse(aasdk::messenger::ChannelId::NONE,
 //                           aasdk::proto::enums::AudioFocusState_Enum::AudioFocusState_Enum_LOSS);
       break;

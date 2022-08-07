@@ -32,7 +32,7 @@ class AndroidAutoEntityFactory : public IAndroidAutoEntityFactory {
   AndroidAutoEntityFactory(asio::io_service &ioService,
                            configuration::IConfiguration::Pointer configuration,
                            IServiceFactory &serviceFactory,
-                           const Signals &signals);
+                           Signals::Pointer Signals);
 
   IAndroidAutoEntity::Pointer create(aasdk::usb::IAOAPDevice::Pointer aoapDevice) override;
   IAndroidAutoEntity::Pointer create(aasdk::tcp::ITCPEndpoint::Pointer tcpEndpoint) override;
@@ -43,7 +43,7 @@ class AndroidAutoEntityFactory : public IAndroidAutoEntityFactory {
   asio::io_service &ioService_;
   configuration::IConfiguration::Pointer configuration_;
   IServiceFactory &serviceFactory_;
-  Signals signals_;
+  Signals::Pointer signals_;
 };
 
 }

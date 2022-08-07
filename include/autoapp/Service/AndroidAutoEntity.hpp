@@ -45,7 +45,7 @@ class AndroidAutoEntity
                     configuration::IConfiguration::Pointer configuration,
                     ServiceList serviceList,
                     IPinger::Pointer pinger,
-                    const Signals &signals,
+                    Signals::Pointer signals,
                     AudioFocusRequest::Pointer audioFocusRequest);
   ~AndroidAutoEntity() override;
 
@@ -84,7 +84,7 @@ class AndroidAutoEntity
   ServiceList serviceList_;
   IPinger::Pointer pinger_;
   IAndroidAutoEntityEventHandler *eventHandler_;
-  Signals signals_;
+  Signals::Pointer signals_;
   AudioFocusRequest::Pointer audioFocusRequest_;
 };
 

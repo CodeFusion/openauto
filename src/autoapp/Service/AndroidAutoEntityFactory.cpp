@@ -33,7 +33,7 @@ namespace autoapp::service {
 
 AndroidAutoEntityFactory::AndroidAutoEntityFactory(asio::io_service &ioService,
                                                    configuration::IConfiguration::Pointer configuration,
-                                                   IServiceFactory &serviceFactory, const Signals &signals)
+                                                   IServiceFactory &serviceFactory, Signals::Pointer signals)
     : ioService_(ioService),
       configuration_(std::move(configuration)),
       serviceFactory_(serviceFactory),
