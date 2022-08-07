@@ -52,7 +52,7 @@ void AlsaAudioOutput::write(__attribute__((unused)) aasdk::messenger::Timestamp:
 
 
     //Fill the decoder buffer with one audio packet
-    ret = aacDecoder_Fill(decoder, &bufPtr, &buffer.size, &bytesLeft);
+    ret = aacDecoder_Fill(decoder, &bufPtr, reinterpret_cast<const UINT *>(&buffer.size), &bytesLeft);
     VLOG(9) << "aacDecoder_Fill bytes left " << bytesLeft;
     if (ret != 0) {
       LOG(ERROR) << "aacDecoder_Fill failed with " << ret;
