@@ -1,7 +1,8 @@
 #pragma once
 
+#include <vector>
+#include <functional>
 #include <autoapp/Managers/IManager.hpp>
-#include <dbus-cxx.h>
 
 class IVideoManager: public IManager{
  public:
