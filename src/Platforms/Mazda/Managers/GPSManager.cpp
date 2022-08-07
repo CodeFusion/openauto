@@ -1,5 +1,5 @@
-#include "autoapp/Managers/GPSManager.hpp"
-#include <easylogging++.h>
+#include "Platforms/Mazda/Managers/GPSManager.hpp"
+#include "easylogging++.h"
 
 void GPSManager::update_position(const asio::error_code &error) {
   std::lock_guard<std::mutex> lock(timerMutex);

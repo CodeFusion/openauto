@@ -4,8 +4,8 @@
 
 #include <atomic>
 #include <set>
-#include <autoapp/Managers/IVideoManager.hpp>
-#include <autoapp/Service/VideoService.hpp>
+#include "autoapp/Managers/IVideoManager.hpp"
+#include "autoapp/Service/VideoService.hpp"
 
 #include <com_jci_nativeguictrl_objectProxy.h>
 #include <com_jci_bucpsa_objectProxy.h>

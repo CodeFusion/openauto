@@ -2,16 +2,18 @@
 #ifdef BUILD_MAZDA
 #include "autoapp/Platform/IPlatform.hpp"
 #include <dbus-cxx.h>
-#include "autoapp/Managers/VideoManager.hpp"
-#include "autoapp/Managers/AAPA.hpp"
-#include "autoapp/Managers/AudioManager.hpp"
-#include "autoapp/Managers/GPSManager.hpp"
-#include "autoapp/Managers/HttpManager.hpp"
-#include "autoapp/Managers/BluetoothManager.hpp"
-#include "autoapp/Managers/NavigationManager.hpp"
+
+#include "Platforms/Mazda/Managers/VideoManager.hpp"
+#include "Platforms/Mazda/Managers/AudioManager.hpp"
+#include "Platforms/Mazda/Managers/AAPA.hpp"
+#include "Platforms/Mazda/Managers/GPSManager.hpp"
+#include "Platforms/Mazda/Managers/HttpManager.hpp"
+#include "Platforms/Mazda/Managers/BluetoothManager.hpp"
 #include "autoapp/Managers/IVideoManager.hpp"
 #include "autoapp/Configuration/Configuration.hpp"
-#include "autoapp/Managers/NightManager.hpp"
+#include "Platforms/Mazda/Managers/NightManager.hpp"
+#include "Platforms/Mazda/Managers/NavigationManager.hpp"
+
 
 #include <cstdlib>
 #include <unistd.h>

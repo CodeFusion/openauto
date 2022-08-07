@@ -1,5 +1,5 @@
-#include <autoapp/Managers/AudioManager.hpp>
-#include <easylogging++.h>
+#include "Platforms/Mazda/Managers/AudioManager.hpp"
+#include "easylogging++.h"
 #include <thread>
 
 void AudioManager::onRequestAudioFocusResult(json result, Stream *stream) {

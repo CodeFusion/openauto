@@ -1,5 +1,5 @@
-#include <autoapp/Managers/HttpManager.hpp>
-#include <easylogging++.h>
+#include "Platforms/Mazda/Managers/HttpManager.hpp"
+#include "easylogging++.h"
 #include "version.h"
 
 HttpManager::HttpManager(IVideoManager::Pointer videosignals, AASignals::Pointer aasignals)

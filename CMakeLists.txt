@@ -16,6 +16,7 @@ if (NOT DEFINED BUILD_RPI)
     set(BUILD_MAZDA ON)
 endif ()
 
+
 if (DEFINED BUILD_MAZDA)
     message("BUILD_MAZDA")
     add_compile_definitions(BUILD_MAZDA)
@@ -24,6 +25,8 @@ if (DEFINED BUILD_MAZDA)
     set(CMAKE_LINK_SEARCH_START_STATIC ON)
     set(OPENSSL_USE_STATIC_LIBS TRUE) #Statically link openssl for Mazda target
     set(Protobuf_USE_STATIC_LIBS ON) #Statically link protobuf for Mazda target
+elseif (DEFINED BUILD_RPI)
+    add_compile_definitions(BUILD_RPI)
 endif ()
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake_modules/")
@@ -122,7 +125,7 @@ endif ()
 link_directories(${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 
 set(autoapp_sources_directory ${sources_directory}/autoapp)
-set(autoapp_include_directory)
+set(autoapp_include_directory ${include_directory}/autoapp)
 file(GLOB_RECURSE autoapp_source_files ${autoapp_sources_directory}/*.cpp)
 
 add_executable(autoapp ${autoapp_source_files})
@@ -130,6 +133,8 @@ target_include_directories(autoapp PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/generated/
 target_include_directories(autoapp PRIVATE ${include_directory})
 
 if (DEFINED BUILD_MAZDA)
+    file(GLOB_RECURSE MAZDA_SRC_FILES ${sources_directory}/Platforms/Mazda/*.cpp)
+    target_sources(autoapp PRIVATE ${MAZDA_SRC_FILES})
     add_subdirectory(src/Mazda/Dbus/com.jci.bca)
     target_link_libraries(autoapp com.jci.bca)
 
@@ -159,6 +164,9 @@ if (DEFINED BUILD_MAZDA)
 
     add_subdirectory(src/Mazda/Dbus/com.jci.vbs.navi)
     target_link_libraries(autoapp com.jci.vbs.navi)
+elseif (DEFINED BUILD_RPI)
+    file(GLOB_RECURSE RPI_SRC_FILES ${sources_directory}/Platforms/RPI/*.cpp)
+    target_sources(autoapp PRIVATE ${RPI_SRC_FILES})
 endif ()
 
 target_compile_options(autoapp PUBLIC "-ffile-prefix-map=${CMAKE_SOURCE_DIR}=.")
@@ -173,6 +181,7 @@ if (DEFINED BUILD_MAZDA)
     target_link_libraries(autoapp nlohmann_json::nlohmann_json)
     target_link_libraries(autoapp tinyxml2)
     target_link_libraries(autoapp ${DBUS_LIBRARIES})
+    target_link_libraries(autoapp -static -static-libstdc++ -static-libgcc)
 endif ()
 
 target_link_libraries(autoapp
@@ -184,9 +193,6 @@ target_link_libraries(autoapp
         fdk-aac
         easylogging++
         toml++
-        -static
-        -static-libstdc++
-        -static-libgcc
         -pthread
         )
 

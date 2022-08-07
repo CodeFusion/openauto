@@ -29,7 +29,8 @@
 #include <autoapp/Service/ServiceFactory.hpp>
 #include <easylogging++.h>
 #include <autoapp/Configuration/Configuration.hpp>
-#include "autoapp/Platform/mazda.hpp"
+#include "Platforms/Mazda/mazda.hpp"
+#include <Platforms/RPI/RPI.hpp>
 #include "autoapp/Platform/IPlatform.hpp"
 
 using ThreadPool = std::vector<std::thread>;
@@ -154,6 +155,9 @@ int main(int argc, char *argv[]) {
 
 #ifdef BUILD_MAZDA
   device = std::make_shared<Mazda>(ioService, configuration);
+#endif
+#ifdef BUILD_RPI
+  device = std::make_shared<RPI>();
 #endif
 
   aasdk::tcp::TCPWrapper tcpWrapper;

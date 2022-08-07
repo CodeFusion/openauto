@@ -1,7 +1,7 @@
 #pragma once
 
 #include <ctime>
-#include <autoapp/Managers/IGPSManager.hpp>
+#include "autoapp/Managers/IGPSManager.hpp"
 
 #include <com_jci_lds_data_objectProxy.h>
 #include <com_jci_lds_control_objectProxy.h>

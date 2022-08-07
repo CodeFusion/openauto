@@ -5,7 +5,7 @@
 #include <mutex>
 #include <asio/io_service.hpp>
 #include <asio/basic_waitable_timer.hpp>
-#include <autoapp/Managers/INightManager.hpp>
+#include "autoapp/Managers/INightManager.hpp"
 
 
 class NightManager: public INightManager{

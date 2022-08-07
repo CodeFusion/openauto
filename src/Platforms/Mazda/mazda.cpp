@@ -2,15 +2,7 @@
 // Created by silverchris on 2022-08-07.
 //
 #ifdef BUILD_MAZDA
-#include "autoapp/Platform/mazda.hpp"
-#include "autoapp/Managers/VideoManager.hpp"
-#include "autoapp/Managers/AAPA.hpp"
-#include "autoapp/Managers/GPSManager.hpp"
-#include "autoapp/Managers/HttpManager.hpp"
-#include "autoapp/Managers/BluetoothManager.hpp"
-#include "autoapp/Managers/IVideoManager.hpp"
-#include "autoapp/Configuration/Configuration.hpp"
-#include "autoapp/Managers/NightManager.hpp"
+#include "Platforms/Mazda/mazda.hpp"
 
 #include <cstdlib>
 #include <unistd.h>

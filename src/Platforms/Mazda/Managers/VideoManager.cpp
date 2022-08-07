@@ -1,5 +1,5 @@
-#include "autoapp/Managers/VideoManager.hpp"
-#include <easylogging++.h>
+#include "Platforms/Mazda/Managers/VideoManager.hpp"
+#include "easylogging++.h"
 
 VideoManager::VideoManager(const std::shared_ptr<DBus::Connection> &session_connection){
   gui =

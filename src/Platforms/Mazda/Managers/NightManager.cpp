@@ -1,5 +1,5 @@
-#include <autoapp/Managers/NightManager.hpp>
-#include <easylogging++.h>
+#include "Platforms/Mazda/Managers/NightManager.hpp"
+#include "easylogging++.h"
 
 NightManager::NightManager(asio::io_service &IoService) : timer(IoService) {
 

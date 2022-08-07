@@ -9,15 +9,15 @@
 
 #include <tinyxml2.h>
 
-#include <aasdk_proto/WifiInfoRequestMessage.pb.h>
-#include <aasdk_proto/WifiInfoResponseMessage.pb.h>
-#include <aasdk_proto/WifiSecurityResponseMessage.pb.h>
+#include "external/aasdk/aasdk_proto/WifiInfoRequestMessage.pb.h"
+#include "external/aasdk/aasdk_proto/WifiInfoResponseMessage.pb.h"
+#include "external/aasdk/aasdk_proto/WifiSecurityResponseMessage.pb.h"
 
-#include <autoapp/Configuration/IConfiguration.hpp>
+#include "autoapp/Configuration/IConfiguration.hpp"
 
 #include <com_jci_bca_objectProxy.h>
 
-#include <autoapp/Managers/IBluetoothManager.hpp>
+#include "autoapp/Managers/IBluetoothManager.hpp"
 
 class BluetoothManager : public IBluetoothManager {
  public:

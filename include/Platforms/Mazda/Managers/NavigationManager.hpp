@@ -1,7 +1,7 @@
 #include <set>
 #include <dbus-cxx.h>
 
-#include <autoapp/Signals/NavigationSignals.hpp>
+#include "autoapp/Signals/NavigationSignals.hpp"
 
 #include <com_jci_navi2IHU_HUDSettings_objectProxy.h>
 #include <com_jci_vbs_navi_tmc_objectProxy.h>

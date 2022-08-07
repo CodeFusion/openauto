@@ -4,9 +4,9 @@
 
 #include <atomic>
 #include <set>
-#include <autoapp/Managers/IVideoManager.hpp>
-#include <autoapp/Service/VideoService.hpp>
-#include <autoapp/Signals/AASignals.hpp>
+#include "autoapp/Managers/IVideoManager.hpp"
+#include "autoapp/Service/VideoService.hpp"
+#include "autoapp/Signals/AASignals.hpp"
 
 #include <com_jci_aapa_objectAdapter.h>
 #include <com_jci_bucpsa_objectProxy.h>

@@ -10,7 +10,7 @@
 #include <vector>
 #include <nlohmann/json.hpp>
 
-#include <autoapp/Signals/Signals.hpp>
+#include "autoapp/Signals/Signals.hpp"
 
 using HttpServer = SimpleWeb::Server<SimpleWeb::HTTP>;
 

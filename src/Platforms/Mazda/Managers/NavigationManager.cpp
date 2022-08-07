@@ -1,5 +1,5 @@
-#include "autoapp/Managers/NavigationManager.hpp"
-#include <easylogging++.h>
+#include "Platforms/Mazda/Managers/NavigationManager.hpp"
+#include "easylogging++.h"
 
 NavigationManager::NavigationManager(NavigationSignals::Pointer navSignals,
                                      const std::shared_ptr<DBus::Connection> &systemconnection) : navSignals_(std::move(
