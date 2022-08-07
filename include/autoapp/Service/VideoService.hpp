@@ -23,7 +23,6 @@
 #include <aasdk/Channel/AV/IVideoServiceChannelEventHandler.hpp>
 #include <autoapp/Projection/IVideoOutput.hpp>
 #include <autoapp/Service/IService.hpp>
-#include <autoapp/Managers/VideoManager.hpp>
 #include <autoapp/Managers/IVideoManager.hpp>
 
 
@@ -68,7 +67,6 @@ class VideoService
   aasdk::channel::av::VideoServiceChannel::Pointer channel_;
   projection::IVideoOutput::Pointer videoOutput_;
   int32_t session_;
-  sigc::connection focusChanged;
   IVideoManager::Pointer videoManager;
 
 };

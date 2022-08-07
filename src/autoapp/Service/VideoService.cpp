@@ -43,7 +43,6 @@ void VideoService::start() {
 void VideoService::stop() {
   strand_.dispatch([this, self = this->shared_from_this()]() {
     LOG(INFO) << "[VideoService] stop.";
-    focusChanged.disconnect();
     videoManager->releaseFocus();
   });
 }
