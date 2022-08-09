@@ -99,10 +99,10 @@ bool GSTVideoOutput::open() {
     fcntl(p_stdin[1], F_SETPIPE_SZ, pipe_max);
     spawn_gst();
 
-    sd = new asio::posix::stream_descriptor(ioService_, p_stdout[0]);
-    asio::async_read_until(*sd, buffer, '\n', [this](asio::error_code error_code, size_t bytes_transferred) {
-      this->message_handler(error_code, bytes_transferred);
-    });
+//    sd = new asio::posix::stream_descriptor(ioService_, p_stdout[0]);
+//    asio::async_read_until(*sd, buffer, '\n', [this](asio::error_code error_code, size_t bytes_transferred) {
+//      this->message_handler(error_code, bytes_transferred);
+//    });
   }
   return true;
 }

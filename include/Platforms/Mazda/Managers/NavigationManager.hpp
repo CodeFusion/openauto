@@ -1,7 +1,7 @@
 #include <set>
 #include <dbus-cxx.h>
 
-#include "autoapp/Signals/NavigationSignals.hpp"
+#include "autoapp/Managers/INavigationManager.hpp"
 
 #include <com_jci_navi2IHU_HUDSettings_objectProxy.h>
 #include <com_jci_vbs_navi_tmc_objectProxy.h>
@@ -53,32 +53,37 @@ enum MazdaDistanceUnits : uint8_t {
   FEET = 5
 };
 
-class NavigationManager {
+class NavigationManager: public INavigationManager {
  public:
-  NavigationManager(NavigationSignals::Pointer navSignals, const std::shared_ptr<DBus::Connection> &);
-  ~NavigationManager();
+  explicit NavigationManager(std::shared_ptr<DBus::Connection> session_connection);
+  ~NavigationManager() override;
+  void start() override;
+  void stop() override;
+  void NavigationStart() override;
+  void NavigationStop() override;
+  void NavigationTurn(int turn_number,
+                      std::string turn_name,
+                      aasdk::proto::enums::NavigationTurnSide_Enum turn_side,
+                      aasdk::proto::enums::NavigationTurnEvent_Enum turn_event,
+                      int turn_angle) override;
+  void NavigationDistance(int distance,
+                          int time,
+                          int displayDistance,
+                          aasdk::proto::enums::NavigationDistanceUnit_Enum distanceUnit) override;
 
  private:
-  static void onNavigationStart();
-  void onNavigationStop();
-  void onNavigationTurn(int,
-                        const std::string &,
-                        aasdk::proto::enums::NavigationTurnSide_Enum,
-                        aasdk::proto::enums::NavigationTurnEvent_Enum,
-                        int);
-  void onNavigationDistance([[maybe_unused]] int,
-                            [[maybe_unused]] int, int, aasdk::proto::enums::NavigationDistanceUnit_Enum);
+
   static uint32_t roundabout(int, aasdk::proto::enums::NavigationTurnSide_Enum side);
 
 //  HUDSettingsCLient *hudSettings_;
+  std::shared_ptr<DBus::Connection> dbusConnection;
   std::shared_ptr<com_jci_vbs_navi_tmcProxy> tmcClient_;
   std::shared_ptr<com_jci_vbs_naviProxy> naviClient_;
   NaviData *navi_data;
-  NavigationSignals::Pointer navSignals_;
 
-  typedef std::array<MazdaIcons, 3> TurnIcon;
-  typedef std::tuple<uint32_t, uint16_t, uint8_t, uint16_t, uint8_t, uint8_t> hudDisplayMsg;
-  typedef std::tuple<std::string, uint8_t> guidancePointData;
+  using TurnIcon = std::array<MazdaIcons, 3>;
+  using hudDisplayMsg = std::tuple<uint32_t, uint16_t, uint8_t, uint16_t, uint8_t, uint8_t>;
+  using guidancePointData = std::tuple<std::string, uint8_t>;
 
   std::map<aasdk::proto::enums::NavigationTurnEvent_Enum, TurnIcon> AA2MAZ;
 

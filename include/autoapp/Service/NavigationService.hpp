@@ -21,7 +21,7 @@
 
 #include <aasdk/Channel/Navigation/NavigationChannel.hpp>
 #include <autoapp/Service/IService.hpp>
-#include <autoapp/Signals/NavigationSignals.hpp>
+#include <autoapp/Managers/INavigationManager.hpp>
 
 namespace autoapp::service {
 
@@ -31,7 +31,7 @@ class NavigationService
       public std::enable_shared_from_this<NavigationService> {
  public:
   NavigationService(asio::io_service &ioService,
-                    aasdk::messenger::IMessenger::Pointer messenger, NavigationSignals::Pointer navSignals);
+                    aasdk::messenger::IMessenger::Pointer messenger, INavigationManager::Pointer NavigationManager);
 
   void start() override;
   void stop() override;
@@ -50,7 +50,7 @@ class NavigationService
 
   asio::io_service::strand strand_;
   aasdk::channel::navigation::NavigationChannel::Pointer channel_;
-  NavigationSignals::Pointer navSignals_;
+  INavigationManager::Pointer navigationManager;
 };
 
 }

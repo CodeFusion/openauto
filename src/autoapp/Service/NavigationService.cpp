@@ -23,10 +23,10 @@
 namespace autoapp::service {
 autoapp::service::NavigationService::NavigationService(asio::io_service &ioService,
                                                        aasdk::messenger::IMessenger::Pointer messenger,
-                                                       NavigationSignals::Pointer navSignals) :
+                                                       INavigationManager::Pointer NavigationManager) :
     strand_(ioService),
     channel_(std::make_shared<aasdk::channel::navigation::NavigationChannel>(strand_, std::move(messenger))),
-    navSignals_(navSignals) {
+    navigationManager(std::move(NavigationManager)) {
 
 }
 void autoapp::service::NavigationService::start() {
@@ -84,9 +84,9 @@ void NavigationService::onChannelError(const aasdk::error::Error &e) {
 void NavigationService::onNavigationStatus(const aasdk::proto::messages::NavigationRequestMessage &request) {
   LOG(DEBUG) << "onNavigationStatus " << aasdk::proto::enums::NavigationRequestState::Enum_Name(request.status());
   if (request.status() == aasdk::proto::enums::NavigationRequestState::NAVIGATION_START) {
-    navSignals_->onNavigationStart.emit();
+    navigationManager->NavigationStart();
   } else {
-    navSignals_->onNavigationStop.emit();
+    navigationManager->NavigationStop();
   }
   channel_->receive(this->shared_from_this());
 }
@@ -95,7 +95,7 @@ void NavigationService::onNavigationTurn(const aasdk::proto::messages::Navigatio
              << " " << aasdk::proto::enums::NavigationTurnSide::Enum_Name(request.turn_side())
              << " " << aasdk::proto::enums::NavigationTurnEvent::Enum_Name(request.turn_event())
              << " " << request.turn_number() << " " << request.turn_angle() << "°";
-  navSignals_->onNavigationTurn.emit(request.turn_number(),
+  navigationManager->NavigationTurn(request.turn_number(),
                                      request.event_name(),
                                      request.turn_side(),
                                      request.turn_event(),
@@ -106,7 +106,7 @@ void NavigationService::onNavigationDistance(const aasdk::proto::messages::Navig
   LOG(DEBUG) << "onNavigationDistance " << request.distance() << "m " << request.time_until() << "s "
              << request.display_distance() << " "
              << aasdk::proto::enums::NavigationDistanceUnit::Enum_Name(request.display_distance_unit());
-  navSignals_->onNavigationDistance.emit(request.distance(),
+  navigationManager->NavigationDistance(request.distance(),
                                          request.time_until(),
                                          request.display_distance(),
                                          request.display_distance_unit());

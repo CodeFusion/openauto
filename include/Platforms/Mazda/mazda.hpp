@@ -35,6 +35,7 @@ class Mazda: public IPlatform{
   INightManager::Pointer nightManager;
   IAudioManager::Pointer audioManager;
   IBluetoothManager::Pointer bluetoothManager;
+  INavigationManager::Pointer navigationManager;
   HttpManager *httpManager;
 
 };
