@@ -1,5 +1,7 @@
 # Mazda-OpenAuto
 
+[![Join the chat at https://gitter.im/mazda_openauto/community](https://badges.gitter.im/mazda_openauto/community.svg)](https://gitter.im/mazda_openauto/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 ### Description
 
 Mazda-OpenAuto is an AndroidAuto(tm) headunit emulator based on aasdk library, and minimal external dependencies.
