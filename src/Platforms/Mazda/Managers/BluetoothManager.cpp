@@ -29,7 +29,8 @@ void BluetoothManager::ConnectionStatusResp(uint32_t found_serviceId, uint32_t c
   }
 }
 
-BluetoothManager::~BluetoothManager() = default;
+BluetoothManager::~BluetoothManager(){
+};
 
 void BluetoothManager::start() {
   LOG(DEBUG) << "Reading BdsConfiguration.xml";

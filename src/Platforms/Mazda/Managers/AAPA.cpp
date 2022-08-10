@@ -63,7 +63,6 @@ void AAPA::releaseFocus() {
 }
 
 AAPA::~AAPA() {
-
 }
 
 void AAPA::start() {
@@ -86,6 +85,8 @@ void AAPA::start() {
 void AAPA::stop() {
   LOG(DEBUG) << "Stopping AAPA";
   releaseFocus();
+  adapter->signal_Available()->emit(0);
+  sleep(1);
   displayModeConnection.disconnect();
   bucpsa.reset();
   session_object.reset();

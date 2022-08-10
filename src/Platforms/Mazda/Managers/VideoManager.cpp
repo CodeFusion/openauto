@@ -68,4 +68,5 @@ void VideoManager::stop() {
   gui.reset();
 }
 
-VideoManager::~VideoManager() = default;
+VideoManager::~VideoManager(){
+};

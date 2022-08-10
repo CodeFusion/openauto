@@ -150,7 +150,6 @@ AudioManager::AudioManager(const std::shared_ptr<DBus::Connection> &session_conn
 }
 
 AudioManager::~AudioManager() {
-
 }
 
 void AudioManager::requestFocus(aasdk::messenger::ChannelId channelId,
@@ -252,10 +251,11 @@ void AudioManager::stop() {
   for (auto &stream : streams) {
     if (stream.second->id >= 0) {
       try {
-        releaseFocus(stream.first);
         json args = {{"sessionId", stream.second->id}};
-        std::string result = AudioProxy->Request("closeSession", args.dump());
-        LOG(DEBUG) << "closeSession(" << args.dump().c_str() << ")\n" << result.c_str() << "\n";
+        std::string result = AudioProxy->Request("abandonAudioFocus", args.dump());
+        LOG(DEBUG) << "abandonAudioFocus(" << args.dump() << ")\n" << result;
+        result = AudioProxy->Request("closeSession", args.dump());
+        LOG(DEBUG) << "closeSession(" << args.dump() << ")\n" << result;
       }
       catch (DBus::Error &error) {
         LOG(ERROR) << error.name() << ": " << error.message();

@@ -79,7 +79,7 @@ class NavigationManager: public INavigationManager {
   std::shared_ptr<DBus::Connection> dbusConnection;
   std::shared_ptr<com_jci_vbs_navi_tmcProxy> tmcClient_;
   std::shared_ptr<com_jci_vbs_naviProxy> naviClient_;
-  NaviData *navi_data;
+  NaviData navi_data{};
 
   using TurnIcon = std::array<MazdaIcons, 3>;
   using hudDisplayMsg = std::tuple<uint32_t, uint16_t, uint8_t, uint16_t, uint8_t, uint8_t>;

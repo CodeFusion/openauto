@@ -188,7 +188,7 @@ int main(int argc, char *argv[]) {
   }
 
   device->signals->bluetoothManager->stop();
-
+  device->stop();
   sleep(2);
 
   LOG(DEBUG) << "Calling app->stop()";

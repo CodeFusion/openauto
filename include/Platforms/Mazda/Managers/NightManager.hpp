@@ -11,7 +11,7 @@
 class NightManager: public INightManager{
  public:
   explicit NightManager(asio::io_service &IoService );
-  ~NightManager() override = default;
+  ~NightManager() override;
 
   void start() override;
   void stop() override;

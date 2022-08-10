@@ -19,8 +19,7 @@ class AADBus final : public com_jci_aapa {
   explicit AADBus(std::function<void(bool)> FocusChanged);
   ~AADBus() = default;
 
-  typedef DBus::MultipleReturn<std::tuple<uint8_t, std::string, std::string, std::string, std::string>,
-                               int32_t> NowPlayingInfo;
+  using NowPlayingInfo = DBus::MultipleReturn<std::tuple<uint8_t, std::string, std::string, std::string, std::string>, int32_t>;
   void MDSettingModeData(uint32_t selectMode) override {};
   void VideoProjectionEventToMD(uint32_t videoProjectionEvent) override;
   void InputKey(uint32_t keyCode, bool absolute, int32_t step) override {};
@@ -58,7 +57,7 @@ class AAPA : public IVideoManager {
 
  public:
   explicit AAPA(std::shared_ptr<DBus::Connection> session_connection);
-  ~AAPA();
+  ~AAPA() override;
 
   void start() override;
   void stop() override;

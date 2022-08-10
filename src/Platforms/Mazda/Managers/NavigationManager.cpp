@@ -22,7 +22,6 @@ void NavigationManager::start() {
 
     if (HUDStatus == 1) {
 
-      navi_data = new NaviData;
 
       AA2MAZ.insert(std::pair(aasdk::proto::enums::NavigationTurnEvent::DEPART,
                               TurnIcon{MazdaIcons::FLAG_LEFT, MazdaIcons::FLAG_RIGHT, MazdaIcons::FLAG}));
@@ -75,12 +74,12 @@ void NavigationManager::start() {
 }
 
 void NavigationManager::stop() {
+  navi_data = NaviData{};
   if (tmcClient_ && naviClient_) {
     tmcClient_->SetHUD_Display_Msg2(guidancePointData("", 0));
     naviClient_->SetHUDDisplayMsgReq(hudDisplayMsg(0, 0, 0, 0, 0, 0));
   }
   AA2MAZ.clear();
-  delete navi_data;
   tmcClient_.reset();
   naviClient_.reset();
 }
@@ -98,21 +97,21 @@ void NavigationManager::NavigationTurn(int turn_number,
                                        aasdk::proto::enums::NavigationTurnEvent_Enum turn_event,
                                        int turn_angle) {
   if (naviClient_ && tmcClient_) {
-    if (turn_number != navi_data->turn_number || turn_name != navi_data->turn_name) {
-      navi_data->turn_number = turn_number;
-      navi_data->turn_name = turn_name;
-      navi_data->msg++;
-      if (navi_data->msg >= 8) {
-        navi_data->msg = 1;
+    if (turn_number != navi_data.turn_number || turn_name != navi_data.turn_name) {
+      navi_data.turn_number = turn_number;
+      navi_data.turn_name = turn_name;
+      navi_data.msg++;
+      if (navi_data.msg >= 8) {
+        navi_data.msg = 1;
       }
     }
-    navi_data->turn_side = turn_side;
-    navi_data->turn_event = turn_event;
-    navi_data->turn_angle = turn_angle;
+    navi_data.turn_side = turn_side;
+    navi_data.turn_event = turn_event;
+    navi_data.turn_angle = turn_angle;
 
-    LOG(DEBUG) << "msg" << navi_data->msg << " " << turn_name;
+    LOG(DEBUG) << "msg" << navi_data.msg << " " << turn_name;
 
-    tmcClient_->SetHUD_Display_Msg2(guidancePointData(turn_name, navi_data->msg));
+    tmcClient_->SetHUD_Display_Msg2(guidancePointData(turn_name, navi_data.msg));
   }
 }
 
@@ -124,14 +123,14 @@ void NavigationManager::NavigationDistance([[maybe_unused]] int distance,
     uint32_t diricon = 0;
     uint16_t nowDistance;
     MazdaDistanceUnits nowUnit;
-    if (navi_data->turn_event == aasdk::proto::enums::NavigationTurnEvent::ROUNDABOUT_ENTER_AND_EXIT) {
+    if (navi_data.turn_event == aasdk::proto::enums::NavigationTurnEvent::ROUNDABOUT_ENTER_AND_EXIT) {
       LOG(DEBUG) << "Roundabout";
-      diricon = roundabout(navi_data->turn_angle, navi_data->turn_side);
+      diricon = roundabout(navi_data.turn_angle, navi_data.turn_side);
     } else {
-      if (AA2MAZ.count(navi_data->turn_event) > 0) {
-        diricon = AA2MAZ[navi_data->turn_event][navi_data->turn_side - 1];
+      if (AA2MAZ.count(navi_data.turn_event) > 0) {
+        diricon = AA2MAZ[navi_data.turn_event][navi_data.turn_side - 1];
       } else {
-        LOG(DEBUG) << "No matching navigation icon for " << navi_data->turn_event << " " << navi_data->turn_side;
+        LOG(DEBUG) << "No matching navigation icon for " << navi_data.turn_event << " " << navi_data.turn_side;
       }
     }
 
@@ -156,14 +155,14 @@ void NavigationManager::NavigationDistance([[maybe_unused]] int distance,
       default:break;
     }
 
-    LOG(DEBUG) << "msg" << navi_data->msg << " " << static_cast<int>(diricon) << " " << nowDistance << " " << nowUnit;
+    LOG(DEBUG) << "msg" << navi_data.msg << " " << static_cast<int>(diricon) << " " << nowDistance << " " << nowUnit;
 
     naviClient_->SetHUDDisplayMsgReq(hudDisplayMsg(diricon,
                                                    nowDistance,
                                                    nowUnit,
                                                    0,
                                                    0,
-                                                   navi_data->msg));
+                                                   navi_data.msg));
 
   }
 }
@@ -185,4 +184,5 @@ void NavigationManager::NavigationStop() {
   system("smctl -l -n jcinavi &");
 }
 
-NavigationManager::~NavigationManager() = default;
+NavigationManager::~NavigationManager() {
+};
