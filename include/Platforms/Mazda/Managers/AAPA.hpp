@@ -6,7 +6,6 @@
 #include <set>
 #include "autoapp/Managers/IVideoManager.hpp"
 #include "autoapp/Service/VideoService.hpp"
-#include "autoapp/Signals/AASignals.hpp"
 
 #include <com_jci_aapa_objectAdapter.h>
 #include <com_jci_bucpsa_objectProxy.h>
@@ -44,14 +43,12 @@ class AADBus final : public com_jci_aapa {
 class AAPA : public IVideoManager {
  private:
   std::shared_ptr<DBus::Connection> dbusConnection;
-  AASignals::Pointer as;
   sigc::connection ConnectedConnection;
   sigc::connection displayModeConnection;
   std::shared_ptr<com_jci_aapa_objectAdapter> session_object;
   std::shared_ptr<com_jci_aapaInterface> adapter;
   AADBus *androiddbus;
   std::shared_ptr<com_jci_bucpsa_objectProxy> bucpsa;
-  bool _connected = false;
 
   void DisplayMode(uint32_t DisplayMode);
 

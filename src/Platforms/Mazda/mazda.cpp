@@ -37,9 +37,6 @@ Mazda::Mazda(asio::io_service &ioService, autoapp::configuration::IConfiguration
   session_connection = dispatcher->create_connection(DBus::BusType::SESSION);
   system_connection = dispatcher->create_connection(DBus::BusType::SYSTEM);
 
-
-  aaSignals = std::make_shared<AASignals>();
-
   if (checkAapaVersion()) {
     LOG(DEBUG) << "Using Mazda Android Auto Video";
     videoManager = std::make_shared<AAPA>(session_connection);
@@ -56,7 +53,7 @@ Mazda::Mazda(asio::io_service &ioService, autoapp::configuration::IConfiguration
   navigationManager = std::make_shared<NavigationManager>(system_connection);
 
   bluetoothManager = std::make_shared<BluetoothManager>(configuration, session_connection);
-  signals = std::make_shared<Signals>(videoManager, audioManager, gpsManager, aaSignals, nightManager, bluetoothManager, navigationManager);
+  signals = std::make_shared<Signals>(videoManager, audioManager, gpsManager, nightManager, bluetoothManager, navigationManager);
 }
 
 void Mazda::start() {

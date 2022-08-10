@@ -32,7 +32,6 @@ class Mazda: public IPlatform{
   std::shared_ptr<DBus::Connection> system_connection;
 
   IVideoManager::Pointer videoManager;
-  AASignals::Pointer aaSignals;
 
   IGPSManager::Pointer gpsManager;
   INightManager::Pointer nightManager;
