@@ -24,6 +24,9 @@ class Mazda: public IPlatform{
  public:
   Mazda(asio::io_service &ioService, autoapp::configuration::IConfiguration::Pointer configuration);
 
+  void start() override;
+  void stop() override;
+
   std::shared_ptr<DBus::Dispatcher> dispatcher;
   std::shared_ptr<DBus::Connection> session_connection;
   std::shared_ptr<DBus::Connection> system_connection;

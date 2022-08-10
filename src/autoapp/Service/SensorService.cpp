@@ -127,10 +127,10 @@ void SensorService::sendNightData(bool isNight) {
   aasdk::proto::messages::SensorEventIndication indication;
 
   if (isNight) {
-    LOG(INFO) << "[SensorService] Mode night triggered";
+    LOG(DEBUG) << "[SensorService] Mode night triggered";
     indication.add_night_mode()->set_is_night(true);
   } else {
-    LOG(INFO) << "[SensorService] Mode day triggered";
+    LOG(DEBUG) << "[SensorService] Mode day triggered";
     indication.add_night_mode()->set_is_night(false);
   }
 

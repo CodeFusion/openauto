@@ -18,6 +18,9 @@ class RPI: public IPlatform{
  public:
   RPI();
 
+  void start() override;
+  void stop() overrride;
+
   IVideoManager::Pointer videoManager;
   AASignals::Pointer aaSignals;
 

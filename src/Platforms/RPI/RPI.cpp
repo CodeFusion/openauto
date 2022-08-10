@@ -15,6 +15,13 @@ RPI::RPI() {
   signals = std::make_shared<Signals>(videoManager, audioManager, gpsManager, aaSignals, nightManager, bluetoothManager);
 }
 
+RPI::start(){
+
+}
+
+RPI::stop(){
+
+}
 
 #endif
 

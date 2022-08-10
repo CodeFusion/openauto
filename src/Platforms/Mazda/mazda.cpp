@@ -23,13 +23,13 @@ Mazda::Mazda(asio::io_service &ioService, autoapp::configuration::IConfiguration
   setenv("DBUS_SYSTEM_BUS_ADDRESS", "unix:path=/tmp/dbus_service_socket", 1);
   setenv("DBUS_SESSION_BUS_ADDRESS", "unix:path=/tmp/dbus_hmi_socket", 1);
 
-  int fd;
-  fd = open("/sys/bus/usb/devices/usb1/authorized_default", O_WRONLY);
-  write(fd, "1", 1);
-  close(fd);
-  fd = open("/sys/bus/usb/devices/usb2/authorized_default", O_WRONLY);
-  write(fd, "1", 1);
-  close(fd);
+  int fileDescriptor;
+  fileDescriptor = open("/sys/bus/usb/devices/usb1/authorized_default", O_WRONLY);
+  write(fileDescriptor, "1", 1);
+  close(fileDescriptor);
+  fileDescriptor = open("/sys/bus/usb/devices/usb2/authorized_default", O_WRONLY);
+  write(fileDescriptor, "1", 1);
+  close(fileDescriptor);
 
   //  DBus::set_logging_function(DBus::log_std_err);
 //  DBus::set_log_level(SL_TRACE);
@@ -51,13 +51,26 @@ Mazda::Mazda(asio::io_service &ioService, autoapp::configuration::IConfiguration
   nightManager = std::make_shared<NightManager>(ioService);
   audioManager = std::make_shared<AudioManager>(system_connection);
 
-  httpManager = new HttpManager(videoManager, aaSignals);
+  httpManager = new HttpManager(videoManager);
 
   navigationManager = std::make_shared<NavigationManager>(system_connection);
-  navigationManager->start();
 
   bluetoothManager = std::make_shared<BluetoothManager>(configuration, session_connection);
   signals = std::make_shared<Signals>(videoManager, audioManager, gpsManager, aaSignals, nightManager, bluetoothManager, navigationManager);
+}
+
+void Mazda::start() {
+  videoManager->start();
+  audioManager->start();
+  navigationManager->start();
+  httpManager->handle_aa_connect(true);
+}
+
+void Mazda::stop() {
+  navigationManager->stop();
+  videoManager->stop();
+  audioManager->stop();
+  httpManager->handle_aa_connect(false);
 }
 #endif
 

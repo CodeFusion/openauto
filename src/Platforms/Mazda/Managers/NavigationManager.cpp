@@ -75,7 +75,14 @@ void NavigationManager::start() {
 }
 
 void NavigationManager::stop() {
-
+  if (tmcClient_ && naviClient_) {
+    tmcClient_->SetHUD_Display_Msg2(guidancePointData("", 0));
+    naviClient_->SetHUDDisplayMsgReq(hudDisplayMsg(0, 0, 0, 0, 0, 0));
+  }
+  AA2MAZ.clear();
+  delete navi_data;
+  tmcClient_.reset();
+  naviClient_.reset();
 }
 
 uint32_t NavigationManager::roundabout(int degrees, aasdk::proto::enums::NavigationTurnSide_Enum side) {

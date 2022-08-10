@@ -33,11 +33,11 @@ namespace autoapp::service {
 
 AndroidAutoEntityFactory::AndroidAutoEntityFactory(asio::io_service &ioService,
                                                    configuration::IConfiguration::Pointer configuration,
-                                                   IServiceFactory &serviceFactory, Signals::Pointer signals)
+                                                   IServiceFactory &serviceFactory, IPlatform::Pointer Device)
     : ioService_(ioService),
       configuration_(std::move(configuration)),
       serviceFactory_(serviceFactory),
-      signals_(signals) {
+      device(Device) {
 
 }
 
@@ -76,7 +76,7 @@ IAndroidAutoEntity::Pointer AndroidAutoEntityFactory::create(aasdk::transport::I
                                              configuration_,
                                              std::move(serviceList),
                                              std::move(pinger),
-                                             signals_,
+                                             device,
                                              std::move(audioFocusRequest));
 }
 
