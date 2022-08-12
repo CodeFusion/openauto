@@ -204,7 +204,6 @@ void AndroidAutoEntity::onAudioFocusRequest(const aasdk::proto::messages::AudioF
 //  audioFocusRequest_->request(std::move(promise));
   aasdk::messenger::ChannelId channelID = aasdk::messenger::ChannelId::NONE;
   aasdk::proto::enums::AudioFocusState::Enum requestState =  aasdk::proto::enums::AudioFocusState::NONE;
-  std::function<void()> resolveHandler;
 
   switch (request.audio_focus_type()) {
     case aasdk::proto::enums::AudioFocusType_Enum_NONE:break;
