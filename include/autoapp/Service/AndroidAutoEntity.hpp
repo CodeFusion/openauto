@@ -28,7 +28,6 @@
 #include <autoapp/Service/IAndroidAutoEntity.hpp>
 #include <autoapp/Service/IService.hpp>
 #include <autoapp/Service/IPinger.hpp>
-#include <autoapp/Service/AudioFocus.hpp>
 #include <autoapp/Platform/IPlatform.hpp>
 
 namespace autoapp::service {
@@ -45,8 +44,7 @@ class AndroidAutoEntity
                     configuration::IConfiguration::Pointer configuration,
                     ServiceList serviceList,
                     IPinger::Pointer pinger,
-                    IPlatform::Pointer Device,
-                    AudioFocusRequest::Pointer audioFocusRequest);
+                    IPlatform::Pointer Device);
   ~AndroidAutoEntity() override;
 
   void start(IAndroidAutoEntityEventHandler &eventHandler) override;
@@ -85,7 +83,6 @@ class AndroidAutoEntity
   IPinger::Pointer pinger_;
   IAndroidAutoEntityEventHandler *eventHandler_;
   IPlatform::Pointer device;
-  AudioFocusRequest::Pointer audioFocusRequest_;
 };
 
 }

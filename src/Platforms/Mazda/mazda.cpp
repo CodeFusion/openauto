@@ -46,7 +46,7 @@ Mazda::Mazda(asio::io_service &ioService, autoapp::configuration::IConfiguration
   }
   gpsManager =  std::make_shared<GPSManager>(ioService, system_connection);
   nightManager = std::make_shared<NightManager>(ioService);
-  audioManager = std::make_shared<AudioManager>(system_connection);
+  audioManager = std::make_shared<AudioManager>(system_connection, ioService);
 
   httpManager = new HttpManager(videoManager);
 

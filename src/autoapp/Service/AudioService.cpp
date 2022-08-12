@@ -200,9 +200,6 @@ void AudioService::onAVChannelStartIndication(const aasdk::proto::messages::AVCh
   LOG(INFO) << "[AudioService] start indication"
             << ", channel: " << aasdk::messenger::channelIdToString(channel_->getId())
             << ", session: " << indication.session();
-//  if (channel_->getId() != aasdk::messenger::ChannelId::MEDIA_AUDIO) {
-//    audiosignals_->focusRequest(channel_->getId(), aasdk::proto::enums::AudioFocusType_Enum_GAIN);
-//  }
   auto promise = AudioTimer::Promise::defer(strand_);
   promise->then(std::function<void(void)>([]() {}),
                 [this, self = this->shared_from_this()](auto error) {

@@ -19,6 +19,7 @@
 #include <aasdk/Channel/Control/ControlServiceChannel.hpp>
 #include <autoapp/Service/AndroidAutoEntity.hpp>
 #include <easylogging++.h>
+#include "aasdk/IO/Promise.hpp"
 
 namespace autoapp::service {
 
@@ -29,8 +30,7 @@ AndroidAutoEntity::AndroidAutoEntity(asio::io_service &ioService,
                                      configuration::IConfiguration::Pointer configuration,
                                      ServiceList serviceList,
                                      IPinger::Pointer pinger,
-                                     IPlatform::Pointer Device,
-                                     AudioFocusRequest::Pointer audioFocusRequest)
+                                     IPlatform::Pointer Device)
     : strand_(ioService),
       cryptor_(std::move(cryptor)),
       transport_(std::move(transport)),
@@ -40,8 +40,7 @@ AndroidAutoEntity::AndroidAutoEntity(asio::io_service &ioService,
       serviceList_(std::move(serviceList)),
       pinger_(std::move(pinger)),
       eventHandler_(nullptr),
-      device(Device),
-      audioFocusRequest_(std::move(audioFocusRequest)) {
+      device(Device){
 }
 
 AndroidAutoEntity::~AndroidAutoEntity() {
@@ -201,45 +200,49 @@ void AndroidAutoEntity::onServiceDiscoveryRequest(const aasdk::proto::messages::
 void AndroidAutoEntity::onAudioFocusRequest(const aasdk::proto::messages::AudioFocusRequest &request) {
   LOG(INFO) << "[AndroidAutoEntity] requested audio focus, type: "
             << aasdk::proto::enums::AudioFocusType_Enum_Name(request.audio_focus_type());
-  auto promise = AudioFocusRequest::Promise::defer(strand_);
-  promise->then([]() {},
-                [this, self = this->shared_from_this()](auto error) {
-                  if (error != aasdk::error::ErrorCode::OPERATION_ABORTED &&
-                      error != aasdk::error::ErrorCode::OPERATION_IN_PROGRESS) {
-                    LOG(ERROR) << "[AndroidAutoEntity] AudioFocus timer exceeded.";
-                    this->onAudioFocusResponse(aasdk::messenger::ChannelId::MEDIA_AUDIO,
-                                               aasdk::proto::enums::AudioFocusState::NONE);
-                  }
-                });
-  audioFocusRequest_->request(std::move(promise));
+
+//  audioFocusRequest_->request(std::move(promise));
+  aasdk::messenger::ChannelId channelID = aasdk::messenger::ChannelId::NONE;
+  aasdk::proto::enums::AudioFocusState::Enum requestState =  aasdk::proto::enums::AudioFocusState::NONE;
+  std::function<void()> resolveHandler;
 
   switch (request.audio_focus_type()) {
-
     case aasdk::proto::enums::AudioFocusType_Enum_NONE:break;
     case aasdk::proto::enums::AudioFocusType_Enum_GAIN:
-      device->signals->audioManager->requestFocus(aasdk::messenger::ChannelId::MEDIA_AUDIO,
-                                          request.audio_focus_type());
+      channelID = aasdk::messenger::ChannelId::MEDIA_AUDIO;
+      requestState = aasdk::proto::enums::AudioFocusState::GAIN;
       break;
     case aasdk::proto::enums::AudioFocusType_Enum_GAIN_TRANSIENT:
-//      signals_.audioManager->requestFocus(aasdk::messenger::ChannelId::SYSTEM_AUDIO,
-//                                          request.audio_focus_type());
-//      break;
     case aasdk::proto::enums::AudioFocusType_Enum_GAIN_TRANSIENT_MAY_DUCK:
-      device->signals->audioManager->requestFocus(aasdk::messenger::ChannelId::SPEECH_AUDIO,
-                                          request.audio_focus_type());
+      channelID = aasdk::messenger::ChannelId::SPEECH_AUDIO;
+      requestState = aasdk::proto::enums::AudioFocusState::GAIN_TRANSIENT;
       break;
     case aasdk::proto::enums::AudioFocusType_Enum_RELEASE:
       device->signals->audioManager->releaseFocus(aasdk::messenger::ChannelId::NONE);
-//      onAudioFocusResponse(aasdk::messenger::ChannelId::NONE,
-//                           aasdk::proto::enums::AudioFocusState_Enum::AudioFocusState_Enum_LOSS);
       break;
   }
+  if(request.audio_focus_type() != aasdk::proto::enums::AudioFocusType_Enum_RELEASE) {
+    auto promise = aasdk::io::Promise<void>::defer(strand_);
+    promise->then([this, self = this->shared_from_this(), channelID, requestState]() {
+                    this->onAudioFocusResponse(channelID, requestState);
+                  },
+                  [this, self = this->shared_from_this()](auto error) {
+                    if (error != aasdk::error::ErrorCode::OPERATION_ABORTED &&
+                        error != aasdk::error::ErrorCode::OPERATION_IN_PROGRESS) {
+                      LOG(ERROR) << "[AndroidAutoEntity] AudioFocus timer exceeded.";
+                      this->onAudioFocusResponse(aasdk::messenger::ChannelId::NONE,
+                                                 aasdk::proto::enums::AudioFocusState::NONE);
+                    }
+                  });
+    device->signals->audioManager->requestFocus(channelID, request.audio_focus_type(), promise);
+  }
+  controlServiceChannel_->receive(this->shared_from_this());
 }
 
 void AndroidAutoEntity::onAudioFocusResponse(aasdk::messenger::ChannelId channel_id,
                                              const aasdk::proto::enums::AudioFocusState_Enum state) {
   LOG(INFO) << "[AndroidAutoEntity] audio focus state: " << aasdk::proto::enums::AudioFocusState_Enum_Name(state);
-  audioFocusRequest_->cancel();
+//  audioFocusRequest_->cancel();
   strand_.dispatch([this, self = this->shared_from_this(), state]() {
     aasdk::proto::messages::AudioFocusResponse response;
     response.set_audio_focus_state(state);
@@ -247,7 +250,6 @@ void AndroidAutoEntity::onAudioFocusResponse(aasdk::messenger::ChannelId channel
     auto promise = aasdk::channel::SendPromise::defer(strand_);
     promise->then([]() {}, [&](const aasdk::error::Error &e) { onChannelError(e); });
     controlServiceChannel_->sendAudioFocusResponse(response, std::move(promise));
-    controlServiceChannel_->receive(this->shared_from_this());
   });
 }
 

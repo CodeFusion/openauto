@@ -5,6 +5,8 @@
 #include "autoapp/Managers/IAudioManager.hpp"
 
 #include <com_xsembedded_ServiceProvider_objectProxy.h>
+#include <aasdk/IO/Promise.hpp>
+
 
 #include <thread>
 #include <mutex>
@@ -41,6 +43,11 @@ class AudioManager: public IAudioManager {
 
   std::mutex AudioMutex;
 
+  asio::io_service::strand strand_;
+  asio::basic_waitable_timer<std::chrono::steady_clock> timer_;
+  aasdk::io::Promise<void>::Pointer promise_;
+
+
   void RegisterStream(std::string StreamName,
                       aasdk::messenger::ChannelId ChannelId,
                       std::string StreamMode,
@@ -51,9 +58,10 @@ class AudioManager: public IAudioManager {
 //  void populateStreamTable();
 
   std::string RequestHandler(const std::string &methodName, const std::string &arguments);
+  void onTimerExceeded(const asio::error_code &error);
 
  public:
-  AudioManager(const std::shared_ptr<DBus::Connection> &);
+  AudioManager(const std::shared_ptr<DBus::Connection> &, asio::io_service &ioService);
 
   ~AudioManager();
 
@@ -61,7 +69,7 @@ class AudioManager: public IAudioManager {
   void stop() override;
 
   //calling requestAudioFocus directly doesn't work on the audio mgr
-  void requestFocus(aasdk::messenger::ChannelId channelId, aasdk::proto::enums::AudioFocusType_Enum aa_type) override;
+  void requestFocus(aasdk::messenger::ChannelId channelId, aasdk::proto::enums::AudioFocusType_Enum aa_type,  aasdk::io::Promise<void>::Pointer promise) override;
 
   void releaseFocus(aasdk::messenger::ChannelId channelId) override;
 

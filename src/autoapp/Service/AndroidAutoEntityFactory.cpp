@@ -27,7 +27,6 @@
 #include <autoapp/Service/AndroidAutoEntityFactory.hpp>
 #include <autoapp/Service/AndroidAutoEntity.hpp>
 #include <autoapp/Service/Pinger.hpp>
-#include <autoapp/Service/AudioFocus.hpp>
 
 namespace autoapp::service {
 
@@ -68,7 +67,6 @@ IAndroidAutoEntity::Pointer AndroidAutoEntityFactory::create(aasdk::transport::I
 
   auto serviceList = serviceFactory_.create(messenger);
   auto pinger(std::make_shared<Pinger>(ioService_, 5000));
-  auto audioFocusRequest(std::make_shared<AudioFocusRequest>(ioService_));
   return std::make_shared<AndroidAutoEntity>(ioService_,
                                              std::move(cryptor),
                                              std::move(transport),
@@ -76,8 +74,7 @@ IAndroidAutoEntity::Pointer AndroidAutoEntityFactory::create(aasdk::transport::I
                                              configuration_,
                                              std::move(serviceList),
                                              std::move(pinger),
-                                             device,
-                                             std::move(audioFocusRequest));
+                                             device);
 }
 
 }
