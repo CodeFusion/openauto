@@ -286,3 +286,9 @@ void AudioManager::stop() {
   AudioObject.reset();
   dbusConnection->release_name("com.androidauto");
 }
+IAudioManager::focusType AudioManager::getFocusType(aasdk::messenger::ChannelId channelId) {
+  if(streams[channelId]->mode ==  "permanent"){
+    return IAudioManager::focusType::NORMAL;
+  }
+  return IAudioManager::focusType::TRANSIENT;
+}

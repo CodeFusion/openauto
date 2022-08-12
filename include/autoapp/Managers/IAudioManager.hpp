@@ -15,6 +15,11 @@ class IAudioManager: public IManager{
   using Pointer = std::shared_ptr<IAudioManager>;
   using focusCallback = std::function<void(aasdk::messenger::ChannelId channelId, aasdk::proto::enums::AudioFocusState_Enum focus)>;
 
+  enum focusType {
+    NORMAL,
+    TRANSIENT
+  };
+
  private:
   std::vector<focusCallback> focusCallbacks;
 
@@ -33,6 +38,10 @@ class IAudioManager: public IManager{
   /// Release the audio focus for the channel ID provided. Release all if channel id is aasdk::messenger::ChannelID::None
   /// \param channelId AASDK channel ID of affected channel
   virtual void releaseFocus(aasdk::messenger::ChannelId channelId) = 0;
+
+  /// Release the audio focus for the channel ID provided. Release all if channel id is aasdk::messenger::ChannelID::None
+  /// \param channelId AASDK channel ID of affected channel
+  virtual focusType getFocusType(aasdk::messenger::ChannelId channelId) = 0;
 
   /// Register callback for audio focus changes
   /// \param callback function to be called on audio focus changes

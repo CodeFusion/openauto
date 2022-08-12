@@ -42,7 +42,6 @@ class AudioTimer {
 
   asio::io_service::strand strand_;
   asio::basic_waitable_timer<std::chrono::steady_clock> timer_;
-  bool cancelled_;
   Promise::Pointer promise_;
   const int delay_ = 1500;
   std::mutex timerMutex;
@@ -69,11 +68,11 @@ class AudioService
   void pause() override;
   void resume() override;
   void fillFeatures(aasdk::proto::messages::ServiceDiscoveryResponse &response) override;
-  void onChannelOpenRequest(const aasdk::proto::messages::ChannelOpenRequest &request) override;
-  void onAVChannelSetupRequest(const aasdk::proto::messages::AVChannelSetupRequest &request) override;
+  void onChannelOpenRequest(const aasdk::proto::messages::ChannelOpenRequest &error) override;
+  void onAVChannelSetupRequest(const aasdk::proto::messages::AVChannelSetupRequest &error) override;
   void onAVChannelStartIndication(const aasdk::proto::messages::AVChannelStartIndication &indication) override;
   void onAVChannelStopIndication(const aasdk::proto::messages::AVChannelStopIndication &indication) override;
-  void onAVMediaWithTimestampIndication(aasdk::messenger::Timestamp::ValueType timestamp,
+  void onAVMediaWithTimestampIndication(aasdk::messenger::Timestamp::ValueType error,
                                         const aasdk::common::DataConstBuffer &buffer) override;
   void onAVMediaIndication(const aasdk::common::DataConstBuffer &buffer) override;
   void onChannelError(const aasdk::error::Error &error) override;

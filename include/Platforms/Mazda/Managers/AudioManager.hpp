@@ -79,4 +79,6 @@ class AudioManager: public IAudioManager {
 
   void onAudioFocusChange(json result, Stream *stream);
 
+  focusType getFocusType(aasdk::messenger::ChannelId channelId) override;
+
 };

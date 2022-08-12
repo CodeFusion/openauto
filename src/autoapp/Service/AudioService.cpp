@@ -23,7 +23,7 @@
 namespace autoapp::service {
 
 AudioTimer::AudioTimer(asio::io_service &ioService) :
-    strand_(ioService), timer_(ioService), cancelled_(false) {
+    strand_(ioService), timer_(ioService) {
 
 }
 
@@ -32,12 +32,7 @@ void AudioTimer::onTimerExceeded(const asio::error_code &error) {
   if (promise_ == nullptr) {
     return;
   }
-  if (error == asio::error::operation_aborted) {
-
-  } else if (cancelled_) {
-    promise_->resolve();
-    promise_.reset();
-  } else {
+  if(error != asio::error::operation_aborted) {
     promise_->reject(aasdk::error::Error(aasdk::error::ErrorCode::NONE));
     promise_.reset();
   }
@@ -45,32 +40,28 @@ void AudioTimer::onTimerExceeded(const asio::error_code &error) {
 
 void AudioTimer::request(Promise::Pointer promise) {
   std::lock_guard<std::mutex> lock(timerMutex);
-  cancelled_ = false;
-
-    if (promise_ != nullptr) {
-      promise_->reject(aasdk::error::Error(aasdk::error::ErrorCode::OPERATION_IN_PROGRESS));
-      cancelled_ = false;
-      timer_.expires_after(std::chrono::milliseconds(delay_));
-      timer_.async_wait(strand_.wrap([this](const asio::error_code &error) { onTimerExceeded(error); }));
-    } else {
-
-      promise_ = std::move(promise);
-      timer_.expires_after(std::chrono::milliseconds(delay_));
-      timer_.async_wait(strand_.wrap([this](const asio::error_code &error) { onTimerExceeded(error); }));
-    }
+  if (promise_ != nullptr) {
+    promise_->reject(aasdk::error::Error(aasdk::error::ErrorCode::OPERATION_IN_PROGRESS));
+    timer_.expires_after(std::chrono::milliseconds(delay_));
+    timer_.async_wait(strand_.wrap([this](const asio::error_code &error) { onTimerExceeded(error); }));
+  } else {
+    promise_ = std::move(promise);
+    timer_.expires_after(std::chrono::milliseconds(delay_));
+    timer_.async_wait(strand_.wrap([this](const asio::error_code &error) { onTimerExceeded(error); }));
+  }
 }
 
 void AudioTimer::cancel() {
   std::lock_guard<std::mutex> lock(timerMutex);
-  cancelled_ = true;
-    timer_.cancel();
+  promise_->reject(aasdk::error::Error(aasdk::error::ErrorCode::NONE));
+  promise_.reset();
+  timer_.cancel();
 }
 
 void AudioTimer::extend() {
   std::lock_guard<std::mutex> lock(timerMutex);
-  cancelled_ = false;
-    timer_.expires_after(std::chrono::milliseconds(delay_));
-    timer_.async_wait(strand_.wrap([this](const asio::error_code &error) { onTimerExceeded(error); }));
+  timer_.expires_after(std::chrono::milliseconds(delay_));
+  timer_.async_wait(strand_.wrap([this](const asio::error_code &error) { onTimerExceeded(error); }));
 }
 
 AudioService::AudioService(asio::io_service &ioService,
@@ -170,7 +161,7 @@ void AudioService::onChannelOpenRequest(const aasdk::proto::messages::ChannelOpe
   auto promise = aasdk::channel::SendPromise::defer(strand_);
   promise->then(std::function<void(void)>([]() {}),
                 [this, self =
-                this->shared_from_this()](const aasdk::error::Error &e) -> void { this->onChannelError(e); });
+                this->shared_from_this()](const aasdk::error::Error &error) -> void { this->onChannelError(error); });
   channel_->sendChannelOpenResponse(response, std::move(promise));
   channel_->receive(this->shared_from_this());
 }
@@ -185,13 +176,13 @@ void AudioService::onAVChannelSetupRequest(const aasdk::proto::messages::AVChann
 
   aasdk::proto::messages::AVChannelSetupResponse response;
   response.set_media_status(status);
-  response.set_max_unacked(50);
+  response.set_max_unacked(10);
   response.add_configs(0);
 
   auto promise = aasdk::channel::SendPromise::defer(strand_);
   promise->then(std::function<void(void)>([]() {}),
                 [this, self =
-                this->shared_from_this()](const aasdk::error::Error &e) -> void { this->onChannelError(e); });
+                this->shared_from_this()](const aasdk::error::Error &error) -> void { this->onChannelError(error); });
   channel_->sendAVChannelSetupResponse(response, std::move(promise));
   channel_->receive(this->shared_from_this());
 }
@@ -200,17 +191,19 @@ void AudioService::onAVChannelStartIndication(const aasdk::proto::messages::AVCh
   LOG(INFO) << "[AudioService] start indication"
             << ", channel: " << aasdk::messenger::channelIdToString(channel_->getId())
             << ", session: " << indication.session();
-  auto promise = AudioTimer::Promise::defer(strand_);
-  promise->then(std::function<void(void)>([]() {}),
-                [this, self = this->shared_from_this()](auto error) {
-                  if (error != aasdk::error::ErrorCode::OPERATION_ABORTED &&
-                      error != aasdk::error::ErrorCode::OPERATION_IN_PROGRESS) {
-                    LOG(ERROR) << "[AndroidAutoEntity] Audio timer exceeded. Channel "
-                               << aasdk::messenger::channelIdToString(this->channel_->getId());
-                    this->audioManager->releaseFocus(this->channel_->getId());
-                  }
-                });
-  timer_.request(std::move(promise));
+  if(audioManager->getFocusType(channel_->getId()) == IAudioManager::focusType::TRANSIENT) {
+    auto promise = AudioTimer::Promise::defer(strand_);
+    promise->then(std::function<void(void)>([]() {}),
+                  [this, self = this->shared_from_this()](auto error) {
+                    if (error != aasdk::error::ErrorCode::OPERATION_ABORTED ||
+                        error != aasdk::error::ErrorCode::OPERATION_IN_PROGRESS) {
+                      LOG(ERROR) << "[AndroidAutoEntity] Audio timer exceeded. Channel "
+                                 << aasdk::messenger::channelIdToString(this->channel_->getId());
+                      this->audioManager->releaseFocus(this->channel_->getId());
+                    }
+                  });
+    timer_.request(std::move(promise));
+  }
   session_ = indication.session();
   for(auto &audioOutput: audioOutput_){
     audioOutput->start();
@@ -222,11 +215,12 @@ void AudioService::onAVChannelStopIndication(const aasdk::proto::messages::AVCha
   LOG(INFO) << "[AudioService] stop indication"
             << ", channel: " << aasdk::messenger::channelIdToString(channel_->getId())
             << ", session: " << session_;
-//  if (channel_->getId() != aasdk::messenger::ChannelId::MEDIA_AUDIO)
-//    audiosignals_->focusRelease(channel_->getId());
   session_ = -1;
   for(auto &audioOutput: audioOutput_) {
     audioOutput->suspend();
+  }
+  if(audioManager->getFocusType(channel_->getId()) == IAudioManager::focusType::TRANSIENT){
+    timer_.cancel();
   }
   channel_->receive(this->shared_from_this());
 }
@@ -249,7 +243,10 @@ void AudioService::onAVMediaWithTimestampIndication(aasdk::messenger::Timestamp:
     delete tempBuffer;
   });
 
-  timer_.extend();
+  if(audioManager->getFocusType(channel_->getId()) == IAudioManager::focusType::TRANSIENT){
+    timer_.extend();
+  }
+
 
   aasdk::proto::messages::AVMediaAckIndication indication;
   indication.set_session(session_);
@@ -258,7 +255,7 @@ void AudioService::onAVMediaWithTimestampIndication(aasdk::messenger::Timestamp:
   auto promise = aasdk::channel::SendPromise::defer(strand_);
   promise->then(std::function<void(void)>([]() {}),
                 [this, self =
-                this->shared_from_this()](const aasdk::error::Error &e) -> void { this->onChannelError(e); });
+                this->shared_from_this()](const aasdk::error::Error &error) -> void { this->onChannelError(error); });
   channel_->sendAVMediaAckIndication(indication, std::move(promise));
   channel_->receive(this->shared_from_this());
 }

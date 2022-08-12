@@ -18,6 +18,7 @@
 
 #include <aasdk/Channel/Control/ControlServiceChannel.hpp>
 #include <autoapp/Service/AndroidAutoEntity.hpp>
+#include <utility>
 #include <easylogging++.h>
 #include "aasdk/IO/Promise.hpp"
 
@@ -40,7 +41,7 @@ AndroidAutoEntity::AndroidAutoEntity(asio::io_service &ioService,
       serviceList_(std::move(serviceList)),
       pinger_(std::move(pinger)),
       eventHandler_(nullptr),
-      device(Device){
+      device(std::move(Device)){
 }
 
 AndroidAutoEntity::~AndroidAutoEntity() {
@@ -223,6 +224,7 @@ void AndroidAutoEntity::onAudioFocusRequest(const aasdk::proto::messages::AudioF
   if(request.audio_focus_type() != aasdk::proto::enums::AudioFocusType_Enum_RELEASE) {
     auto promise = aasdk::io::Promise<void>::defer(strand_);
     promise->then([this, self = this->shared_from_this(), channelID, requestState]() {
+                    LOG(DEBUG) << "Audofocus Lambda ran";
                     this->onAudioFocusResponse(channelID, requestState);
                   },
                   [this, self = this->shared_from_this()](auto error) {
