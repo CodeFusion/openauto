@@ -89,7 +89,7 @@ void InputService::onChannelOpenRequest(const aasdk::proto::messages::ChannelOpe
   response.set_status(status);
 
   auto promise = aasdk::channel::SendPromise::defer(strand_);
-  promise->then([]() {}, [&](const aasdk::error::Error &e) { onChannelError(e); });
+  promise->then([]() {}, [&](const aasdk::error::Error &error) { onChannelError(error); });
   channel_->sendChannelOpenResponse(response, std::move(promise));
 
   channel_->receive(this->shared_from_this());
@@ -122,13 +122,13 @@ void InputService::onBindingRequest(const aasdk::proto::messages::BindingRequest
   LOG(INFO) << "[InputService] binding request, status: " << status;
 
   auto promise = aasdk::channel::SendPromise::defer(strand_);
-  promise->then([]() {}, [&](const aasdk::error::Error &e) { onChannelError(e); });
+  promise->then([]() {}, [&](const aasdk::error::Error &error) { onChannelError(error); });
   channel_->sendBindingResponse(response, std::move(promise));
   channel_->receive(this->shared_from_this());
 }
 
-void InputService::onChannelError(const aasdk::error::Error &e) {
-  LOG(ERROR) << "[SensorService] channel error: " << e.what();
+void InputService::onChannelError(const aasdk::error::Error &error) {
+  LOG(ERROR) << "[SensorService] channel error: " << error.what();
 }
 
 void InputService::onButtonEvent(const projection::ButtonEvent &event) {
@@ -152,7 +152,7 @@ void InputService::onButtonEvent(const projection::ButtonEvent &event) {
     }
 
     auto promise = aasdk::channel::SendPromise::defer(strand_);
-    promise->then([]() {}, [&](const aasdk::error::Error &e) { onChannelError(e); });
+    promise->then([]() {}, [&](const aasdk::error::Error &error) { onChannelError(error); });
     channel_->sendInputEventIndication(inputEventIndication, std::move(promise));
   });
 }
@@ -173,7 +173,7 @@ void InputService::onTouchEvent(const projection::TouchEvent &event) {
     touchLocation->set_pointer_id(0);
 
     auto promise = aasdk::channel::SendPromise::defer(strand_);
-    promise->then([]() {}, [&](const aasdk::error::Error &e) { onChannelError(e); });
+    promise->then([]() {}, [&](const aasdk::error::Error &error) { onChannelError(error); });
     channel_->sendInputEventIndication(inputEventIndication, std::move(promise));
   });
 }

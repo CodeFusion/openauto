@@ -55,7 +55,7 @@ class VideoService
                                         const aasdk::common::DataConstBuffer &buffer) override;
   void onAVMediaIndication(const aasdk::common::DataConstBuffer &buffer) override;
   void onVideoFocusRequest(const aasdk::proto::messages::VideoFocusRequest &request) override;
-  void onChannelError(const aasdk::error::Error &e) override;
+  void onChannelError(const aasdk::error::Error &error) override;
 
 
  private:

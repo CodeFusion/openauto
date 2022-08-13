@@ -39,7 +39,7 @@ class BluetoothService
   void fillFeatures(aasdk::proto::messages::ServiceDiscoveryResponse &response) override;
   void onChannelOpenRequest(const aasdk::proto::messages::ChannelOpenRequest &request) override;
   void onBluetoothPairingRequest(const aasdk::proto::messages::BluetoothPairingRequest &request) override;
-  void onChannelError(const aasdk::error::Error &e) override;
+  void onChannelError(const aasdk::error::Error &error) override;
 
  private:
   using std::enable_shared_from_this<BluetoothService>::shared_from_this;

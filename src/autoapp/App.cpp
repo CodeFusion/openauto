@@ -162,8 +162,8 @@ void App::enumerateDevices() {
   promise->then([](auto result) {
                   LOG(INFO) << "[App] Devices enumeration result: " << result;
                 },
-                [](auto e) {
-                  LOG(ERROR) << "[App] Devices enumeration failed: " << e.what();
+                [](auto error) {
+                  LOG(ERROR) << "[App] Devices enumeration failed: " << error.what();
                 });
 
   connectedAccessoriesEnumerator_->enumerate(std::move(promise));
@@ -174,7 +174,7 @@ void App::waitForDevice() {
 
   auto promise = aasdk::usb::IUSBHub::Promise::defer(strand_);
   promise->then([&](aasdk::usb::DeviceHandle deviceHandle) { aoapDeviceHandler(std::move(deviceHandle)); },
-                [&](const aasdk::error::Error &e) { onUSBHubError(e); });
+                [&](const aasdk::error::Error &error) { onUSBHubError(error); });
   usbHub_->start(std::move(promise));
   startServerSocket();
 }

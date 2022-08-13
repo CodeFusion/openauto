@@ -39,7 +39,7 @@ class NavigationService
   void resume() override;
   void fillFeatures(aasdk::proto::messages::ServiceDiscoveryResponse &response) override;
   void onChannelOpenRequest(const aasdk::proto::messages::ChannelOpenRequest &request) override;
-  void onChannelError(const aasdk::error::Error &e) override;
+  void onChannelError(const aasdk::error::Error &error) override;
 
  private:
   using std::enable_shared_from_this<NavigationService>::shared_from_this;

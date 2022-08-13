@@ -64,7 +64,7 @@ class AndroidAutoEntity
   void onNavigationFocusRequest(const aasdk::proto::messages::NavigationFocusRequest &request) override;
   void onPingRequest(const aasdk::proto::messages::PingRequest &request) override;
   void onPingResponse(const aasdk::proto::messages::PingResponse &response) override;
-  void onChannelError(const aasdk::error::Error &e) override;
+  void onChannelError(const aasdk::error::Error &error) override;
   void onVoiceSessionRequest(const aasdk::proto::messages::VoiceSessionRequest &request) override;
 
  private:

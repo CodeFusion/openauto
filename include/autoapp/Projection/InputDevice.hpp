@@ -81,7 +81,7 @@ class InputDevice : public IInputDevice {
 
   void audio_focus(aasdk::messenger::ChannelId channel_id, aasdk::proto::enums::AudioFocusState_Enum state);
   void video_focus(bool state);
-  void poll(asio::error_code error);
+  void poll(asio::error_code errorCode);
   bool canceled_;
 };
 }

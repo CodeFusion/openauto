@@ -81,7 +81,7 @@ void InputDevice::video_focus(bool state) {
 
 void InputDevice::start(IInputDeviceEventHandler &eventHandler) {
   std::lock_guard<decltype(mutex_)> lock(mutex_);
-  int rc;
+  int returnCode;
 
   LOG(INFO) << "[InputDevice] start.";
   eventHandler_ = &eventHandler;
@@ -93,9 +93,9 @@ void InputDevice::start(IInputDeviceEventHandler &eventHandler) {
     LOG(ERROR) << EVENT_DEVICE_TS << " is not a vaild device";
   }
 
-  rc = libevdev_new_from_fd(touch_fd, &touch_dev);
-  if (rc < 0) {
-    LOG(ERROR) << "Failed to init libevdev " << strerror(-rc);
+  returnCode = libevdev_new_from_fd(touch_fd, &touch_dev);
+  if (returnCode < 0) {
+    LOG(ERROR) << "Failed to init libevdev " << strerror(-returnCode);
   }
 
   if (libevdev_grab(touch_dev, LIBEVDEV_GRAB) < 0) {
@@ -108,9 +108,9 @@ void InputDevice::start(IInputDeviceEventHandler &eventHandler) {
     LOG(ERROR) << EVENT_DEVICE_KBD << " is not a vaild device";
   }
 
-  rc = libevdev_new_from_fd(kbd_fd, &keyboard_dev);
-  if (rc < 0) {
-    LOG(ERROR) << "Failed to init libevdev " << strerror(-rc);
+  returnCode = libevdev_new_from_fd(kbd_fd, &keyboard_dev);
+  if (returnCode < 0) {
+    LOG(ERROR) << "Failed to init libevdev " << strerror(-returnCode);
   }
 
   if (libevdev_grab(keyboard_dev, LIBEVDEV_GRAB) < 0) {
@@ -128,14 +128,14 @@ void InputDevice::start(IInputDeviceEventHandler &eventHandler) {
   for (const auto &value: keymap) {
     libevdev_enable_event_code(dev, EV_KEY, value.first, nullptr);
   }
-  rc = libevdev_uinput_create_from_device(dev, LIBEVDEV_UINPUT_OPEN_MANAGED, &ui_dev);
+  returnCode = libevdev_uinput_create_from_device(dev, LIBEVDEV_UINPUT_OPEN_MANAGED, &ui_dev);
 
-  if (rc < 0) {
-    LOG(ERROR) << "Failed to init libevdev " << strerror(-rc);
+  if (returnCode < 0) {
+    LOG(ERROR) << "Failed to init libevdev " << strerror(-returnCode);
   }
   canceled_ = false;
   timer_.expires_from_now(std::chrono::milliseconds(50));
-  timer_.async_wait(strand_.wrap([this](asio::error_code ec) { this->poll(ec); }));
+  timer_.async_wait(strand_.wrap([this](asio::error_code error) { this->poll(error); }));
 
 }
 
@@ -143,38 +143,38 @@ void InputDevice::poll(asio::error_code error) {
   if (error == asio::error::operation_aborted || canceled_) {
     return;
   }
-  int rc = 0;
-  while (rc != -EAGAIN) {
-    input_event ev{};
-    rc = libevdev_next_event(touch_dev, LIBEVDEV_READ_FLAG_NORMAL, &ev);
-    if (rc == LIBEVDEV_READ_STATUS_SYNC) {
+  int returnCode = 0;
+  while (returnCode != -EAGAIN) {
+    input_event event{};
+    returnCode = libevdev_next_event(touch_dev, LIBEVDEV_READ_FLAG_NORMAL, &event);
+    if (returnCode == LIBEVDEV_READ_STATUS_SYNC) {
       LOG(ERROR) << "Input dropped";
-      while (rc == LIBEVDEV_READ_STATUS_SYNC) {
-        rc = libevdev_next_event(touch_dev, LIBEVDEV_READ_FLAG_SYNC, &ev);
+      while (returnCode == LIBEVDEV_READ_STATUS_SYNC) {
+        returnCode = libevdev_next_event(touch_dev, LIBEVDEV_READ_FLAG_SYNC, &event);
       }
       LOG(DEBUG) << "Input resynced";
-    } else if (rc == LIBEVDEV_READ_STATUS_SUCCESS) {
-      handle_touch(&ev);
+    } else if (returnCode == LIBEVDEV_READ_STATUS_SUCCESS) {
+      handle_touch(&event);
     }
   }
 
-  rc = 0;
-  while (rc != -EAGAIN) {
-    input_event ev{};
-    rc = libevdev_next_event(keyboard_dev, LIBEVDEV_READ_FLAG_NORMAL, &ev);
-    if (rc == LIBEVDEV_READ_STATUS_SYNC) {
+  returnCode = 0;
+  while (returnCode != -EAGAIN) {
+    input_event event{};
+    returnCode = libevdev_next_event(keyboard_dev, LIBEVDEV_READ_FLAG_NORMAL, &event);
+    if (returnCode == LIBEVDEV_READ_STATUS_SYNC) {
       LOG(ERROR) << "Input dropped";
-      while (rc == LIBEVDEV_READ_STATUS_SYNC) {
-        rc = libevdev_next_event(keyboard_dev, LIBEVDEV_READ_FLAG_SYNC, &ev);
+      while (returnCode == LIBEVDEV_READ_STATUS_SYNC) {
+        returnCode = libevdev_next_event(keyboard_dev, LIBEVDEV_READ_FLAG_SYNC, &event);
       }
       LOG(DEBUG) << "Input resynced";
-    } else if (rc == LIBEVDEV_READ_STATUS_SUCCESS) {
-      handle_key(&ev);
+    } else if (returnCode == LIBEVDEV_READ_STATUS_SUCCESS) {
+      handle_key(&event);
     }
   }
 
   timer_.expires_from_now(std::chrono::milliseconds(50));
-  timer_.async_wait(strand_.wrap([this](asio::error_code ec) { this->poll(ec); }));
+  timer_.async_wait(strand_.wrap([this](asio::error_code errorCode) { this->poll(errorCode); }));
 }
 
 void InputDevice::stop() {

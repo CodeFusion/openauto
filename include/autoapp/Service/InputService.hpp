@@ -43,7 +43,7 @@ class InputService :
   void fillFeatures(aasdk::proto::messages::ServiceDiscoveryResponse &response) override;
   void onChannelOpenRequest(const aasdk::proto::messages::ChannelOpenRequest &request) override;
   void onBindingRequest(const aasdk::proto::messages::BindingRequest &request) override;
-  void onChannelError(const aasdk::error::Error &e) override;
+  void onChannelError(const aasdk::error::Error &error) override;
   void onButtonEvent(const projection::ButtonEvent &event) override;
   void onTouchEvent(const projection::TouchEvent &event) override;
 

@@ -80,7 +80,7 @@ void BluetoothService::onChannelOpenRequest(const aasdk::proto::messages::Channe
   response.set_status(status);
 
   auto promise = aasdk::channel::SendPromise::defer(strand_);
-  promise->then([]() {}, [&](const aasdk::error::Error &e) { onChannelError(e); });
+  promise->then([]() {}, [&](const aasdk::error::Error &error) { onChannelError(error); });
   channel_->sendChannelOpenResponse(response, std::move(promise));
 
   channel_->receive(this->shared_from_this());
@@ -97,14 +97,14 @@ void BluetoothService::onBluetoothPairingRequest(const aasdk::proto::messages::B
                                : aasdk::proto::enums::BluetoothPairingStatus::FAIL);
 
   auto promise = aasdk::channel::SendPromise::defer(strand_);
-  promise->then([]() {}, [&](const aasdk::error::Error &e) { onChannelError(e); });
+  promise->then([]() {}, [&](const aasdk::error::Error &error) { onChannelError(error); });
   channel_->sendBluetoothPairingResponse(response, std::move(promise));
 
   channel_->receive(this->shared_from_this());
 }
 
-void BluetoothService::onChannelError(const aasdk::error::Error &e) {
-  LOG(ERROR) << "[BluetoothService] channel error: " << e.what();
+void BluetoothService::onChannelError(const aasdk::error::Error &error) {
+  LOG(ERROR) << "[BluetoothService] channel error: " << error.what();
 }
 
 }

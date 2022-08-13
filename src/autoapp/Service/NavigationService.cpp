@@ -71,14 +71,14 @@ void NavigationService::onChannelOpenRequest(const aasdk::proto::messages::Chann
   auto promise = aasdk::channel::SendPromise::defer(strand_);
   promise->then(std::function<void(void)>([]() {}),
                 [this, self =
-                this->shared_from_this()](const aasdk::error::Error &e) -> void { this->onChannelError(e); });
+                this->shared_from_this()](const aasdk::error::Error &error) -> void { this->onChannelError(error); });
   channel_->sendChannelOpenResponse(response, std::move(promise));
 
   channel_->receive(this->shared_from_this());
 }
 
-void NavigationService::onChannelError(const aasdk::error::Error &e) {
-  LOG(ERROR) << "[NavigationChannel] channel error: " << e.what();
+void NavigationService::onChannelError(const aasdk::error::Error &error) {
+  LOG(ERROR) << "[NavigationChannel] channel error: " << error.what();
 }
 
 void NavigationService::onNavigationStatus(const aasdk::proto::messages::NavigationRequestMessage &request) {
