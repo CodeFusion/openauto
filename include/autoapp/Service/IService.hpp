@@ -26,7 +26,7 @@ namespace autoapp::service {
 
 class IService {
  public:
-  typedef std::shared_ptr<IService> Pointer;
+  using Pointer = std::shared_ptr<IService>;
 
   virtual ~IService() = default;
 
@@ -37,6 +37,6 @@ class IService {
   virtual void fillFeatures(aasdk::proto::messages::ServiceDiscoveryResponse &response) = 0;
 };
 
-typedef std::vector<IService::Pointer> ServiceList;
+using ServiceList = std::vector<IService::Pointer>;
 
 }

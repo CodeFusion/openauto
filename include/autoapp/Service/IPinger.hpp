@@ -24,8 +24,8 @@ namespace autoapp::service {
 
 class IPinger {
  public:
-  typedef std::shared_ptr<IPinger> Pointer;
-  typedef aasdk::io::Promise<void> Promise;
+  using Pointer = std::shared_ptr<IPinger>;
+  using Promise = aasdk::io::Promise<void>;
 
   virtual ~IPinger() = default;
   virtual void ping(Promise::Pointer promise) = 0;

@@ -29,7 +29,7 @@ namespace autoapp::configuration {
 
 class IConfiguration {
  public:
-  typedef std::shared_ptr<IConfiguration> Pointer;
+  using Pointer = std::shared_ptr<IConfiguration>;
 
   virtual ~IConfiguration() = default;
 

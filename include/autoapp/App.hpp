@@ -30,7 +30,7 @@ namespace autoapp {
 
 class App : public service::IAndroidAutoEntityEventHandler, public std::enable_shared_from_this<App> {
  public:
-  typedef std::shared_ptr<App> Pointer;
+  using Pointer = std::shared_ptr<App>;
 
   App(asio::io_service &ioService,
       aasdk::usb::USBWrapper &usbWrapper,

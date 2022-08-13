@@ -27,7 +27,7 @@ namespace autoapp::service {
 
 class WifiService : public IService, public std::enable_shared_from_this<WifiService> {
  public:
-  typedef std::shared_ptr<WifiService> Pointer;
+  using Pointer = std::shared_ptr<WifiService>;
 
   WifiService(configuration::IConfiguration::Pointer configuration);
 

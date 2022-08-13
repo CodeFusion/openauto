@@ -32,8 +32,8 @@ class IInputDeviceEventHandler;
 
 class IInputDevice {
  public:
-  typedef std::shared_ptr<IInputDevice> Pointer;
-  typedef std::vector<aasdk::proto::enums::ButtonCode::Enum> ButtonCodes;
+  using Pointer = std::shared_ptr<IInputDevice>;
+  using ButtonCodes = std::vector<aasdk::proto::enums::ButtonCode::Enum>;
 
   virtual ~IInputDevice() = default;
   virtual void start(IInputDeviceEventHandler &eventHandler) = 0;

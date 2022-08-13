@@ -33,7 +33,7 @@ class VideoService
       public IService,
       public std::enable_shared_from_this<VideoService> {
  public:
-  typedef std::shared_ptr<VideoService> Pointer;
+  using Pointer = std::shared_ptr<VideoService>;
 
   VideoService(asio::io_service &ioService,
                aasdk::messenger::IMessenger::Pointer messenger,

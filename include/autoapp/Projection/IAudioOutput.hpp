@@ -26,7 +26,7 @@ namespace autoapp::projection {
 
 class IAudioOutput {
  public:
-  typedef std::shared_ptr<IAudioOutput> Pointer;
+  using Pointer = std::shared_ptr<IAudioOutput>;
 
   IAudioOutput() = default;
   virtual ~IAudioOutput() = default;

@@ -24,8 +24,8 @@ namespace autoapp::projection {
 
 class IBluetoothDevice {
  public:
-  typedef aasdk::io::Promise<void, void> PairingPromise;
-  typedef std::shared_ptr<IBluetoothDevice> Pointer;
+  using PairingPromise = aasdk::io::Promise<void, void>;
+  using Pointer = std::shared_ptr<IBluetoothDevice>;
 
   virtual void stop() = 0;
   [[nodiscard]] virtual bool isPaired(const std::string &address) const = 0;

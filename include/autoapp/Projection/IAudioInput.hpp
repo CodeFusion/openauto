@@ -26,9 +26,9 @@ namespace autoapp::projection {
 
 class IAudioInput {
  public:
-  typedef aasdk::io::Promise<void, void> StartPromise;
-  typedef aasdk::io::Promise<aasdk::common::Data, void> ReadPromise;
-  typedef std::shared_ptr<IAudioInput> Pointer;
+  using StartPromise = aasdk::io::Promise<void, void>;
+  using ReadPromise = aasdk::io::Promise<aasdk::common::Data, void>;
+  using Pointer = std::shared_ptr<IAudioInput>;
 
   virtual ~IAudioInput() = default;
 

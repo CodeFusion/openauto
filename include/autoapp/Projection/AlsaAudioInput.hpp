@@ -31,8 +31,8 @@ class AlsaAudioInput : public IAudioInput {
   std::string micDevice;
 
  public:
-  typedef aasdk::io::Promise<void, void> StartPromise;
-  typedef aasdk::io::Promise<aasdk::common::Data, void> ReadPromise;
+  using StartPromise = aasdk::io::Promise<void, void>;
+  using ReadPromise = aasdk::io::Promise<aasdk::common::Data, void>;
 
   explicit AlsaAudioInput(asio::io_service &ioService, std::string micDevice = "default");
 

@@ -24,7 +24,7 @@
 namespace autoapp::projection {
 class MazdaBluetooth : public IBluetoothDevice {
  public:
-  typedef aasdk::io::Promise<void, void> PairingPromise;
+  using PairingPromise = aasdk::io::Promise<void, void>;
 
   void stop() override;
 

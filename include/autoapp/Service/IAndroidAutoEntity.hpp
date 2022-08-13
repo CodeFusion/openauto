@@ -25,7 +25,7 @@ namespace autoapp::service {
 
 class IAndroidAutoEntity {
  public:
-  typedef std::shared_ptr<IAndroidAutoEntity> Pointer;
+  using Pointer = std::shared_ptr<IAndroidAutoEntity>;
 
   virtual ~IAndroidAutoEntity() = default;
 

@@ -29,7 +29,7 @@ class AudioInputService
       public IService,
       public std::enable_shared_from_this<AudioInputService> {
  public:
-  typedef std::shared_ptr<AudioInputService> Pointer;
+  using Pointer = std::shared_ptr<AudioInputService>;
 
   AudioInputService(asio::io_service &ioService,
                     aasdk::messenger::IMessenger::Pointer messenger,
