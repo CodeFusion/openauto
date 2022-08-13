@@ -13,8 +13,6 @@ class INightManager: public IManager{
  private:
   std::vector<nightCallback> nightCallbacks;
 
- protected:
-  int delay = 1000;
  public:
   INightManager() = default;
   ~INightManager() override = default;
