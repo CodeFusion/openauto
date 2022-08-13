@@ -170,7 +170,7 @@ void InputService::onTouchEvent(const projection::TouchEvent &event) {
     auto *touchLocation = touchEvent->add_touch_location();
     touchLocation->set_x(event.x);
     touchLocation->set_y(event.y);
-    touchLocation->set_pointer_id(0);
+    touchLocation->set_pointer_id(event.pointerId);
 
     auto promise = aasdk::channel::SendPromise::defer(strand_);
     promise->then([]() {}, [&](const aasdk::error::Error &error) { onChannelError(error); });
