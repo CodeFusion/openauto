@@ -14,10 +14,7 @@ class IVideoManager: public IManager{
 
  public:
   IVideoManager() = default;
-  virtual ~IVideoManager() = default;
-
-  virtual void start() = 0;
-  virtual void stop() = 0;
+  virtual ~IVideoManager() override = default;
 
   /// Requests video focus from the VideoManager
   virtual void requestFocus() = 0;
