@@ -31,8 +31,8 @@ void NightManager::checkNight(const asio::error_code &error) {
   if (fileDescriptor == nullptr) {
     LOG(ERROR) << "Failed to open CAN_Day_Mode gpio value for reading";
   } else {
-    size_t r = fread(&gpio_value, 1, 2, fileDescriptor);
-    if (r == 2) {
+    size_t count = fread(&gpio_value, 1, 2, fileDescriptor);
+    if (count == 2) {
       nightmodenow = (gpio_value[0] == '0');
     } else {
       LOG(ERROR) << "Read CAN_Day_Mode gpio value failed";
