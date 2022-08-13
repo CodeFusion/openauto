@@ -1,6 +1,7 @@
 #include "Platforms/Mazda/Managers/AudioManager.hpp"
 #include "easylogging++.h"
 #include <thread>
+#include <utility>
 
 void AudioManager::onTimerExceeded(const asio::error_code &error) {
   std::lock_guard<std::mutex> lock(AudioMutex);
@@ -153,8 +154,8 @@ void AudioManager::populateData() {
   }
 }
 
-AudioManager::AudioManager(const std::shared_ptr<DBus::Connection> &session_connection, asio::io_service &ioService)
-    :  dbusConnection(session_connection), strand_(ioService), timer_(ioService){
+AudioManager::AudioManager(std::shared_ptr<DBus::Connection> session_connection, asio::io_service &ioService)
+    :  dbusConnection(std::move(session_connection)), strand_(ioService), timer_(ioService){
 
 }
 

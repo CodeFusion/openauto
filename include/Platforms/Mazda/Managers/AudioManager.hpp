@@ -61,7 +61,7 @@ class AudioManager: public IAudioManager {
   void onTimerExceeded(const asio::error_code &error);
 
  public:
-  AudioManager(const std::shared_ptr<DBus::Connection> &, asio::io_service &ioService);
+  AudioManager(std::shared_ptr<DBus::Connection> , asio::io_service &ioService);
 
   ~AudioManager() override = default;
 
