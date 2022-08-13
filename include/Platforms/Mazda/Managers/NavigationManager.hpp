@@ -56,7 +56,7 @@ enum MazdaDistanceUnits : uint8_t {
 class NavigationManager: public INavigationManager {
  public:
   explicit NavigationManager(std::shared_ptr<DBus::Connection> session_connection);
-  ~NavigationManager() override;
+  ~NavigationManager() override = default;
   void start() override;
   void stop() override;
   void NavigationStart() override;

@@ -54,7 +54,7 @@ class AAPA : public IVideoManager {
 
  public:
   explicit AAPA(std::shared_ptr<DBus::Connection> session_connection);
-  ~AAPA() override;
+  ~AAPA() override = default;
 
   void start() override;
   void stop() override;

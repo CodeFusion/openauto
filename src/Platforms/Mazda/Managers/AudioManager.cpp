@@ -158,9 +158,6 @@ AudioManager::AudioManager(const std::shared_ptr<DBus::Connection> &session_conn
 
 }
 
-AudioManager::~AudioManager() {
-}
-
 void AudioManager::requestFocus(aasdk::messenger::ChannelId channelId,
                                 aasdk::proto::enums::AudioFocusType_Enum aa_type,  aasdk::io::Promise<void>::Pointer promise) {
   std::lock_guard<std::mutex> lock(AudioMutex);

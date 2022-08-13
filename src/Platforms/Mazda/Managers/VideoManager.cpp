@@ -67,6 +67,3 @@ void VideoManager::stop() {
   bucpsa.reset();
   gui.reset();
 }
-
-VideoManager::~VideoManager(){
-};

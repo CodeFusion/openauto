@@ -9,7 +9,7 @@
 class VideoManager: public IVideoManager{
  public:
   VideoManager();
-  ~VideoManager() override;
+  ~VideoManager() override = default;
 
   void start() override;
   void stop() override;

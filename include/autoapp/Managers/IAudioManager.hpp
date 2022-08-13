@@ -25,10 +25,7 @@ class IAudioManager: public IManager{
 
  public:
   IAudioManager() = default;
-  virtual ~IAudioManager() = default;
-
-  virtual void start() = 0;
-  virtual void stop() = 0;
+  virtual ~IAudioManager() override = default;
 
   /// Request the given audio focus type for the given channel id
   /// \param channelId AASDK channel ID of affected channel

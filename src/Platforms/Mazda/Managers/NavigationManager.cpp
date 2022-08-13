@@ -183,6 +183,3 @@ void NavigationManager::NavigationStop() {
   LOG(DEBUG) << "Navigation Stopped";
   system("smctl -l -n jcinavi &");
 }
-
-NavigationManager::~NavigationManager() {
-};

@@ -5,9 +5,6 @@ NightManager::NightManager(asio::io_service &IoService) : timer(IoService) {
 
 };
 
-NightManager::~NightManager(){
-}
-
 void NightManager::start() {
   std::lock_guard<std::mutex> lock(timerMutex);
   LOG(DEBUG) << "Starting NightManager";

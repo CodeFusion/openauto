@@ -23,7 +23,7 @@ class VideoManager: public IVideoManager{
 
  public:
   explicit VideoManager(std::shared_ptr<DBus::Connection> session_connection);
-  ~VideoManager() override;
+  ~VideoManager() override = default;
 
   void start() override;
   void stop() override;

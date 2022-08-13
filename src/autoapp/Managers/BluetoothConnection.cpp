@@ -54,7 +54,7 @@ void BluetoothConnection::messageHandler() {
 
   ssize_t bufferPos = 0;
   while (true) {
-    ssize_t readCount = read(buffer.begin() + bufferPos, buffer.size() - bufferPos);
+    ssize_t readCount = read(buffer.begin() + bufferPos, (ssize_t)buffer.size() - bufferPos);
     if (readCount == 0) {
       break;
     }
@@ -97,7 +97,7 @@ void BluetoothConnection::sendMessage(google::protobuf::MessageLite &message, IB
 
   message.SerializeToArray(out + 4, (int)byteSize);
 
-  auto written = write(out, byteSize + 4);
+  auto written = write(out, (ssize_t)byteSize + 4);
   if (written > -1) {
     LOG(DEBUG) << "Bytes written: " << written;
   } else {

@@ -12,13 +12,13 @@ class AudioManager : public IAudioManager {
  public:
   AudioManager();
 
-  ~AudioManager() override;
+  ~AudioManager() override = default;
 
   void start() override;
   void stop() override;
 
   //calling requestAudioFocus directly doesn't work on the audio mgr
-  void requestFocus(aasdk::messenger::ChannelId channelId, aasdk::proto::enums::AudioFocusType_Enum aa_type) override;
+  void requestFocus(aasdk::messenger::ChannelId channelId, aasdk::proto::enums::AudioFocusType_Enum aa_type, aasdk::io::Promise<void>::Pointer promise) override;
   void releaseFocus(aasdk::messenger::ChannelId channelId) override;
 
 };

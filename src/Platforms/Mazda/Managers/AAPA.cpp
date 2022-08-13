@@ -62,9 +62,6 @@ void AAPA::releaseFocus() {
   focusChanged(false);
 }
 
-AAPA::~AAPA() {
-}
-
 void AAPA::start() {
   LOG(DEBUG) << "Starting AAPA";
   dbusConnection->request_name("com.jci.aapa", DBUSCXX_NAME_FLAG_REPLACE_EXISTING);

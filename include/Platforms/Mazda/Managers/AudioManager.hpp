@@ -63,7 +63,7 @@ class AudioManager: public IAudioManager {
  public:
   AudioManager(const std::shared_ptr<DBus::Connection> &, asio::io_service &ioService);
 
-  ~AudioManager();
+  ~AudioManager() override = default;
 
   void start() override;
   void stop() override;

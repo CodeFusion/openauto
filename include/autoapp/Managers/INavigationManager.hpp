@@ -24,10 +24,7 @@ class INavigationManager : public IManager {
 
  public:
   INavigationManager() = default;
-  virtual ~INavigationManager() = default;
-
-  virtual void start() = 0;
-  virtual void stop() = 0;
+  virtual ~INavigationManager() override = default;
 
   virtual void NavigationDistance(int distance,
                                   int time,

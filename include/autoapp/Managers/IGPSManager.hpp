@@ -16,11 +16,7 @@ class IGPSManager: public IManager{
   int delay = 1000;
  public:
   IGPSManager() = default;
-  virtual ~IGPSManager() = default;
-
-  virtual void start() = 0;
-  virtual void stop() = 0;
-
+  virtual ~IGPSManager() override = default;
 
   void registerLocationCallback(const locationCallback &callback) {
     locationCallbacks.emplace_back(callback);

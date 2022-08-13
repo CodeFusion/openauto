@@ -9,8 +9,8 @@ AudioManager::~AudioManager() {
 }
 
 void AudioManager::requestFocus(aasdk::messenger::ChannelId channelId,
-                                aasdk::proto::enums::AudioFocusType_Enum aa_type) {
-  updateFocus(channelId, AudioFocusState::GAIN);
+                                aasdk::proto::enums::AudioFocusType_Enum aa_type,  aasdk::io::Promise<void>::Pointer promise) {
+  promise->resolve();
 }
 
 void AudioManager::releaseFocus(aasdk::messenger::ChannelId channelId) {

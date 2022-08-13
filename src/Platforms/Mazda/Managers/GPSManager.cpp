@@ -52,10 +52,6 @@ GPSManager::GPSManager(asio::io_service &IoService, const std::shared_ptr<DBus::
 
 }
 
-GPSManager::~GPSManager() {
-  stop();
-}
-
 void GPSManager::start() {
   std::lock_guard<std::mutex> lock(timerMutex);
   try {

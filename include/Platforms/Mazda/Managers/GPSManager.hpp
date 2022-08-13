@@ -13,7 +13,7 @@ class GPSManager: public IGPSManager{
  public:
   GPSManager(asio::io_service &IoService, const std::shared_ptr<DBus::Connection> &system_connection);
 
-  ~GPSManager() override;
+  ~GPSManager() override = default;
 
   void start() override;
   void stop() override;
