@@ -275,7 +275,7 @@ void AndroidAutoEntity::sendShutdownRequest() {
   controlServiceChannel_->sendShutdownRequest(request, std::move(promise));
 }
 
-void AndroidAutoEntity::onShutdownResponse(const aasdk::proto::messages::ShutdownResponse &) {
+void AndroidAutoEntity::onShutdownResponse(const aasdk::proto::messages::ShutdownResponse &response) {
   LOG(INFO) << "[AndroidAutoEntity] Shutdown response ";
   this->triggerQuit();
 }
