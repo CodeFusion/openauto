@@ -6,11 +6,13 @@ class IBluetoothManager: public IManager{
  public:
   using Pointer = std::shared_ptr<IBluetoothManager>;
 
- public:
   IBluetoothManager() = default;
-  virtual ~IBluetoothManager() = default;
 
-  virtual void start() = 0;
-  virtual void stop() = 0;
+  enum wifiMessages{
+    WifiInfoRequest = 1,
+    WifiSecurityRequest = 2,
+    WifiSecurityReponse = 3,
+    WifiInfoRequestResponse = 7
+  };
 
 };
