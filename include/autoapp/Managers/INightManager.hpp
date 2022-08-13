@@ -17,7 +17,7 @@ class INightManager: public IManager{
   int delay = 1000;
  public:
   INightManager() = default;
-  virtual ~INightManager() override = default;
+  ~INightManager() override = default;
 
   void registerNightCallback(const nightCallback &callback) {
     nightCallbacks.emplace_back(callback);

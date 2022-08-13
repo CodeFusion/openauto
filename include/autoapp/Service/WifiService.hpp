@@ -29,7 +29,7 @@ class WifiService : public IService, public std::enable_shared_from_this<WifiSer
  public:
   using Pointer = std::shared_ptr<WifiService>;
 
-  WifiService(configuration::IConfiguration::Pointer configuration);
+  explicit WifiService(configuration::IConfiguration::Pointer configuration);
 
   void start() override;
   void stop() override;
