@@ -229,18 +229,16 @@ void AudioService::onAVMediaWithTimestampIndication(aasdk::messenger::Timestamp:
                                                     const aasdk::common::DataConstBuffer &buffer) {
 
   //Copy the buffer, so we can control its lifecycle.
-  auto *dataBuffer = static_cast<uint8_t *>(malloc(buffer.size));
-  std::copy(buffer.cdata, buffer.cdata+buffer.size, dataBuffer);
-  auto *tempBuffer = new aasdk::common::DataConstBuffer(dataBuffer, buffer.size);
+  std::vector<uint8_t> dataBuffer;
+  std::copy(buffer.cdata, buffer.cdata+buffer.size, std::back_inserter(dataBuffer));
 
   //post this task, so that we don't block here.
-  WriterStrand.post([this, timestamp, tempBuffer](){
-    VLOG(9) << "Wrote " << tempBuffer->size;
+  WriterStrand.post([this, timestamp, databuffer=std::move(dataBuffer), size=buffer.size](){
+    aasdk::common::DataConstBuffer tempBuffer(aasdk::common::DataConstBuffer(databuffer.data(), size));
+    VLOG(9) << "Wrote " << tempBuffer.size;
     for(auto &audioOutput: audioOutput_) {
-      audioOutput->write(timestamp, *tempBuffer);
+      audioOutput->write(timestamp, tempBuffer);
     }
-    free((void *) tempBuffer->cdata);
-    delete tempBuffer;
   });
 
   if(audioManager->getFocusType(channel_->getId()) == IAudioManager::focusType::TRANSIENT){
