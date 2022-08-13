@@ -11,8 +11,8 @@
 #include <utility>
 
 BluetoothManager::BluetoothManager(autoapp::configuration::IConfiguration::Pointer configuration,
-                                   std::shared_ptr<DBus::Connection> session_connection)
-    : configuration_(std::move(configuration)), dbusConnection(std::move(session_connection)) {
+                                   std::shared_ptr<DBus::Connection> session_connection, asio::io_service &ioService)
+    : configuration_(std::move(configuration)), dbusConnection(std::move(session_connection)), timer(ioService) {
 
 }
 
@@ -58,7 +58,8 @@ void BluetoothManager::start() {
   if (bdsconfigured) {
     bcaClient = com_jci_bca_objectProxy::create(dbusConnection, "com.jci.bca", "/com/jci/bca");
     bcaClient->getcom_jci_bcaInterface()->signal_ConnectionStatusResp()->connect(sigc::mem_fun(*this, &BluetoothManager::ConnectionStatusResp));
-    bcaClient->getcom_jci_bcaInterface()->StartAdd(serviceId);
+    timer.expires_from_now(std::chrono::seconds(1));
+    timer.async_wait([this](const asio::error_code &error) { retryTimer(error); });
   }
 }
 
@@ -143,4 +144,22 @@ int BluetoothManager::update_connection_info() {
   close(fileDescriptor);
 
   return 0;
+}
+void BluetoothManager::aaConnect(bool connected) {
+  if(connected){
+    timer.cancel();
+  }
+  else{
+    timer.expires_from_now(std::chrono::seconds(1));
+    timer.async_wait([this](const asio::error_code &error) { retryTimer(error); });
+  }
+
+}
+void BluetoothManager::retryTimer(const asio::error_code &error) {
+  if (error == asio::error::operation_aborted){
+    return;
+  }
+  bcaClient->getcom_jci_bcaInterface()->StartAdd(serviceId);
+  timer.expires_from_now(std::chrono::seconds(10));
+  timer.async_wait([this](const asio::error_code &error) { retryTimer(error); });
 }

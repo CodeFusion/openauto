@@ -16,6 +16,8 @@
 #include "autoapp/Configuration/IConfiguration.hpp"
 
 #include <com_jci_bca_objectProxy.h>
+#include <asio/basic_waitable_timer.hpp>
+#include <asio/io_service.hpp>
 
 #include "autoapp/Managers/IBluetoothManager.hpp"
 #include "autoapp/Managers/BluetoothConnection.hpp"
@@ -28,12 +30,16 @@ struct connectionInfo {
 
 class BluetoothManager : public IBluetoothManager {
  public:
+  using Pointer = std::shared_ptr<BluetoothManager>;
+
   explicit BluetoothManager(autoapp::configuration::IConfiguration::Pointer configuration,
-                            std::shared_ptr<DBus::Connection> session_connection);
+                            std::shared_ptr<DBus::Connection> session_connection, asio::io_service &ioService);
   ~BluetoothManager() override = default;
 
   void start() override;
   void stop() override;
+
+  void aaConnect(bool connected);
 
  private:
   autoapp::configuration::IConfiguration::Pointer configuration_;
@@ -44,6 +50,8 @@ class BluetoothManager : public IBluetoothManager {
   void ConnectionStatusResp(uint32_t, uint32_t, uint32_t, uint32_t, std::tuple<std::vector<uint8_t>>);
   int update_connection_info();
   connectionInfo info;
+  asio::basic_waitable_timer<std::chrono::steady_clock> timer;
+  void retryTimer(const asio::error_code &error);
 
 
 };
