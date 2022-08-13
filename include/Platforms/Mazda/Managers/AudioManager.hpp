@@ -25,7 +25,6 @@ struct Stream {
 
 class AudioManager: public IAudioManager {
  private:
-  bool inCall = false;
   std::vector<std::string> MazdaDestinations;
   std::map<aasdk::messenger::ChannelId, Stream *> streams;
 //  std::map<std::string, int> ExistingStreams;

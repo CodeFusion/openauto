@@ -82,7 +82,6 @@ void startIOServiceWorkers(asio::io_service &ioService, ThreadPool &threadPool) 
 INITIALIZE_EASYLOGGINGPP
 
 bool running = true;
-bool connected = false;
 
 void signalHandler(int signum) {
   if (signum == SIGINT) {
