@@ -16,6 +16,3 @@ void VideoManager::requestFocus() {
 void VideoManager::releaseFocus() {
   focusChanged(false);
 }
-
-VideoManager::~VideoManager() {
-}

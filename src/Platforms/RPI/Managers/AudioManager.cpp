@@ -4,10 +4,6 @@ AudioManager::AudioManager() {
 
 }
 
-AudioManager::~AudioManager() {
-
-}
-
 void AudioManager::requestFocus(aasdk::messenger::ChannelId channelId,
                                 aasdk::proto::enums::AudioFocusType_Enum aa_type,  aasdk::io::Promise<void>::Pointer promise) {
   promise->resolve();
