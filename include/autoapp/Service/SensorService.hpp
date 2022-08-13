@@ -55,7 +55,6 @@ class SensorService
   aasdk::channel::sensor::SensorServiceChannel::Pointer channel_;
   IGPSManager::Pointer gpsManager;
   INightManager::Pointer nightManger;
-  int delay = 250; //resend the sensors every x milliseconds
 };
 
 }
