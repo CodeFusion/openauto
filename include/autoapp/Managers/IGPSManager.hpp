@@ -12,8 +12,6 @@ class IGPSManager: public IManager{
  private:
   std::vector<locationCallback> locationCallbacks;
 
- protected:
-  int delay = 1000;
  public:
   IGPSManager() = default;
   ~IGPSManager() override = default;
@@ -22,7 +20,7 @@ class IGPSManager: public IManager{
     locationCallbacks.emplace_back(callback);
   };
 
-  void updateLocation(aasdk::proto::data::GPSLocation locationData) {
+  void updateLocation(const aasdk::proto::data::GPSLocation& locationData) {
     for (auto &callback : locationCallbacks) {
       callback(locationData);
     }

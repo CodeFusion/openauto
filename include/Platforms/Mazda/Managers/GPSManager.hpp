@@ -27,6 +27,7 @@ class GPSManager: public IGPSManager{
 
   int errorCount;
   std::time_t lastError;
+  const int delay = 1000;
 
   void update_position(const asio::error_code &error);
 
