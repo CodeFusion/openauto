@@ -27,6 +27,7 @@
 #include <autoapp/Service/AndroidAutoEntityFactory.hpp>
 #include <autoapp/Service/AndroidAutoEntity.hpp>
 #include <autoapp/Service/Pinger.hpp>
+#include <utility>
 
 namespace autoapp::service {
 
@@ -36,7 +37,7 @@ AndroidAutoEntityFactory::AndroidAutoEntityFactory(asio::io_service &ioService,
     : ioService_(ioService),
       configuration_(std::move(configuration)),
       serviceFactory_(serviceFactory),
-      device(Device) {
+      device(std::move(Device)) {
 
 }
 
