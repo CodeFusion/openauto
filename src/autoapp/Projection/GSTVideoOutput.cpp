@@ -80,7 +80,7 @@ bool GSTVideoOutput::open() {
 
   if (gstpid == -1) {
 
-    if (pipe2(p_stdin, O_CLOEXEC) != 0 || pipe2(p_stdout, O_CLOEXEC) != 0) {
+    if (pipe2(p_stdin.data(), O_CLOEXEC) != 0 || pipe2(p_stdout.data(), O_CLOEXEC) != 0) {
       return false;
     }
 

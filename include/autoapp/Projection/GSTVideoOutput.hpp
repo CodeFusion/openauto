@@ -42,7 +42,8 @@ class GSTVideoOutput : public IVideoOutput {
  private:
   asio::io_service &ioService_;
   pid_t gstpid = -1;
-  int p_stdin[2]{}, p_stdout[2]{};
+  std::array<int, 2> p_stdin{};
+  std::array<int, 2> p_stdout{};
   asio::streambuf buffer;
   asio::posix::stream_descriptor *sd = nullptr;
   const size_t dpi = 141;
