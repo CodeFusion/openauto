@@ -1,33 +1,29 @@
-#!/bin/sh
+#!/bin/ash
 
 # some usefull things (thanks to oz_paulb from mazda3revolution.com)
 
 get_cmu_sw_version() {
-  _ver=$(/bin/grep "^JCI_SW_VER=" /jci/version.ini | /bin/sed 's/^.*_\([^_]*\)\"$/\1/')
-  _patch=$(/bin/grep "^JCI_SW_VER_PATCH=" /jci/version.ini | /bin/sed 's/^.*\"\([^\"]*\)\"$/\1/')
-  _flavor=$(/bin/grep "^JCI_SW_FLAVOR=" /jci/version.ini | /bin/sed 's/^.*_\([^_]*\)\"$/\1/')
+  _ver=$(grep "^JCI_SW_VER=" /jci/version.ini | sed 's/^.*_\([^_]*\)\"$/\1/')
+  _patch=$(grep "^JCI_SW_VER_PATCH=" /jci/version.ini | sed 's/^.*\"\([^\"]*\)\"$/\1/')
+  _flavor=$(grep "^JCI_SW_FLAVOR=" /jci/version.ini | sed 's/^.*_\([^_]*\)\"$/\1/')
 
-  if [ -n "${_flavor}" ]; then
-    echo "${_ver}${_patch}-${_flavor}"
-  else
-    echo "${_ver}${_patch}"
-  fi
+  printf '%s%s%s\n' "$_ver" "$_patch" "${_flavor:+-$_flavor}"
 }
 
-MYDIR=$(dirname $(readlink -f "$0"))
+MYDIR=$(dirname "$(readlink -f "$0")")
 CMU_SW_VER=$(get_cmu_sw_version)
 if [ -f "${MYDIR}/installer_log.txt" ]; then
   #save old logs
   logidx=1
   while [ -f "${MYDIR}/installer_log_${logidx}.txt" ]; do
-    logidx=$((logidx + 1))
+     _=$((logidx++))
   done
   mv "${MYDIR}/installer_log.txt" "${MYDIR}/installer_log_${logidx}.txt"
 fi
 
 log_message() {
-  printf "$*" >>"${MYDIR}/installer_log.txt"
-  /bin/fsync "${MYDIR}/installer_log.txt"
+  printf '..%s..' "$*" >>"${MYDIR}/installer_log.txt"
+  fsync "${MYDIR}/installer_log.txt"
 }
 
 #============================= DIALOG FUNCTIONS
@@ -35,27 +31,25 @@ log_message() {
 show_message() { # $1 - title, $2 - message
   killall jci-dialog
   log_message "= POPUP INFO: $*\n"
-  /jci/tools/jci-dialog --info --title="$1" --text="$2" --no-cancel
+  jci-dialog --info --title="$1" --text="$2" --no-cancel
 }
 
 show_confirmation() { # $1 - title, $2 - message
   killall jci-dialog
   log_message "= POPUP CONFIRM: $*\n"
-  /jci/tools/jci-dialog --confirm --title="$1" --text="$2" --no-cancel
-  return $?
+  jci-dialog --confirm --title="$1" --text="$2" --no-cancel
 }
 
 show_error() { # $1 - title, $2 - message
   killall jci-dialog
   log_message "= POPUP ERROR: $*\n"
-  /jci/tools/jci-dialog --error --title="$1" --text="$2" --ok-label='OK' --no-cancel
+  jci-dialog --error --title="$1" --text="$2" --ok-label='OK' --no-cancel
 }
 
 show_question() { # $1 - title, $2 - message, $3 - ok label, $4 - cancel label
   killall jci-dialog
   log_message "= POPUP: $*\n"
-  /jci/tools/jci-dialog --question --title="$1" --text="$2" --ok-label="$3" --cancel-label="$4"
-  return $?
+  jci-dialog --question --title="$1" --text="$2" --ok-label="$3" --cancel-label="$4"
 }
 
 #============================= INSTALLATION HELPERS
@@ -87,15 +81,7 @@ disable_watchdog_and_remount() {
 install_openauto() {
   log_message "Running Installer... "
   sh "${MYDIR}"/openauto_installer.run --noexec || {
-    log_message "Unpacking OpenAuto Failed"
-    return 1
-  }
-  chmod +x /mnt/data_persist/dev/bin/aa_installer || {
-    log_message "chmod aa_installer failed "
-    return 1
-  }
-  /mnt/data_persist/dev/bin/aa_installer || {
-    log_message "aa_installer failed"
+    log_message "Installing OpenAuto Failed"
     return 1
   }
   log_message "DONE\n"
@@ -104,14 +90,20 @@ install_openauto() {
 
 remove_openauto() {
   log_message "Removing OpenAuto\n"
-  mv /mnt/data_persist/dev/backup/jci/* /jci/
-  rm -rf /jci/gui/apps/_androidauto/
-  rm -rf /jci/opera/opera_dir/userjs/additionalApps.js
-  rm -rf /jci/opera/opera_dir/userjs/additionalAppsadditionalApps.json
-  rm -rf /mnt/data_persist/dev/bin/autoapp
-  rm -rf /mnt/data_persist/dev/bin/aa_installer
-  rm -rf /mnt/data_persist/dev/bin/headunit_libs
-  rm -rf /mnt/data_persist/dev/backup
+  smctl -s -n autoapp
+  if [ -f /mnt/data_persist/dev/bin/autoapp.uninstall ]; then
+    ash /mnt/data_persist/dev/bin/autoapp.uninstall
+  else
+    mv /mnt/data_persist/dev/backup/jci/* /jci/
+    rm -rf \
+            /jci/gui/apps/_androidauto/ \
+            /jci/opera/opera_dir/userjs/additionalApps.js \
+            /jci/opera/opera_dir/userjs/additionalAppsadditionalApps.json \
+            /mnt/data_persist/dev/bin/autoapp \
+            /mnt/data_persist/dev/bin/aa_installer \
+            /mnt/data_persist/dev/bin/headunit_libs \
+            /mnt/data_persist/dev/backup
+  fi
 }
 
 remove_headunit() {
@@ -134,9 +126,9 @@ remove_headunit() {
   fi
   if [ ${reverted} -eq 0 ]; then
     log_message "by reverting changes ... "
-    sed -i 's/User JavaScript=1/User JavaScript=0/g' /jci/opera/opera_home/opera.ini &&
-      sed -i 'Allow File XMLHttpRequest=1/d' /jci/opera/opera_home/opera.ini
-    if [ $? -eq 0 ]; then
+
+    if sed -i 's/User JavaScript=1/User JavaScript=0/g' /jci/opera/opera_home/opera.ini &&
+             sed -i 'Allow File XMLHttpRequest=1/d' /jci/opera/opera_home/opera.ini; then
       log_message "DONE\n"
     else
       log_message "FAILED\n"
@@ -165,10 +157,9 @@ remove_headunit() {
     fi
     if [ ${reverted} -eq 0 ]; then
       log_message "by reverting changes ... "
-      sed -i '/# Android Auto start/d' /jci/scripts/stage_wifi.sh &&
-        sed -i '/headunit-wrapper/d' /jci/scripts/stage_wifi.sh &&
-        sed -i '/check-usb.sh/d' /jci/scripts/stage_wifi.sh
-      if [ $? -eq 0 ]; then
+      if sed -i '/# Android Auto start/d' /jci/scripts/stage_wifi.sh &&
+                 sed -i '/headunit-wrapper/d' /jci/scripts/stage_wifi.sh &&
+                 sed -i '/check-usb.sh/d' /jci/scripts/stage_wifi.sh; then
         log_message "DONE\n"
       else
         log_message "FAILED\n"
@@ -177,13 +168,13 @@ remove_headunit() {
   fi
   # Remove Android Auto Headunit App
   log_message "Removing AA files ... "
-  rm /tmp/mnt/data_persist/dev/bin/headunit || log_message "headunit failed ... "
-  rm /tmp/mnt/data_persist/dev/bin/headunit-wrapper || log_message "headunit-wrapper failed ... "
-  rm /tmp/mnt/data_persist/dev/bin/headunit.json || log_message "headunit.json failed ... "
-  rm /tmp/mnt/data_persist/dev/bin/check-usb.sh || log_message "check-usb.sh failed ... "
-  rm -rf /tmp/mnt/data_persist/dev/bin/headunit_libs || log_message "headunit_libs failed ... "
-  rm -rf /jci/gui/apps/_androidauto || log_message "_androidauto failed ... "
-  rm /jci/opera/opera_dir/userjs/additionalApps.* || "additionalApps.* failed ... "
+  rm -rf /tmp/mnt/data_persist/dev/bin/headunit \
+         /tmp/mnt/data_persist/dev/bin/headunit-wrapper \
+         /tmp/mnt/data_persist/dev/bin/headunit.json \
+         /tmp/mnt/data_persist/dev/bin/check-usb.sh \
+         /tmp/mnt/data_persist/dev/bin/headunit_libs \
+         /jci/gui/apps/_androidauto \
+         /jci/opera/opera_dir/userjs/additionalApps.*
   log_message "DONE\n"
 }
 
@@ -195,7 +186,7 @@ log_message "MYDIR = ${MYDIR}\n"
 log_message "CMU version = ${CMU_SW_VER}\n"
 
 # check software version first
-echo "${CMU_SW_VER}" | /bin/sed "/^5[569]\..*/Q 1"
+echo "${CMU_SW_VER}" | sed "/^5[569]\..*/Q 1"
 if [ $? -ne 1 ]; then
   log_message "Script aborted due to CMU version mismatch."
   show_message "Aborted" "This version of CMU is not supported. Please update first."
