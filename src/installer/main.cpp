@@ -1,39 +1,47 @@
 #include <string>
 #include <filesystem>
+#include <utility>
 #include "installer/main.hpp"
 #include "easylogging++.h"
+#include "sys/mount.h"
 
 #define MINI_CASE_SENSITIVE
 #include <ini.h>
 
 INITIALIZE_EASYLOGGINGPP
 
-namespace fs = std::filesystem;
 
-int mkdir(const fs::path &path) {
+int installer::mkdir(const fs::path &path) {
   fs::directory_entry dir_path{path};
   if (!dir_path.exists()) {
     if (!fs::create_directories(dir_path)) {
       LOG(ERROR) << "Couldn't create " << dir_path;
       return -1;
     }
+    installed_files.emplace_back(path);
   }
   LOG(INFO) << path << " Created";
   return 0;
 }
 
-void backup(const fs::path &path) {
-  fs::path backup_path = "/mnt/data_persist/dev/backup";
-  backup_path += path;
-  if (!std::filesystem::exists(backup_path)) {
-    if (mkdir(backup_path.parent_path()) == 0) {
-      LOG(INFO) << "Backing up " << path << " to " << backup_path << std::endl;
-      fs::copy(path, backup_path, fs::copy_options::update_existing);
+void installer::backup(const fs::path &path) {
+  fs::path backup_destination = backup_path;
+  backup_destination += path;
+  if (!std::filesystem::exists(backup_destination)) {
+    if (mkdir(backup_destination.parent_path()) == 0) {
+      LOG(INFO) << "Backing up " << path << " to " << backup_destination << std::endl;
+      try {
+        fs::copy(path, backup_destination);
+      }
+      catch (fs::filesystem_error &error){
+        LOG(INFO) << backup_destination << " " << error.what() << std::endl;
+      }
     }
   }
+  backup_files.emplace_back(backup_destination);
 }
 
-void install_bds() {
+void installer::install_bds() {
   /// Configure BDS so that Android Auto can connect to our Bluetooth service to get the WiFi settings
 
   backup("/jci/bds/BdsConfiguration.xml");
@@ -73,7 +81,7 @@ void install_bds() {
   }
 }
 
-bool checkAapaVersion() {
+bool installer::checkAapaVersion() {
   /// Check if CMU Firmware already has Android Auto built in.
 
   mINI::INIFile file("/jci/version.ini");
@@ -82,7 +90,7 @@ bool checkAapaVersion() {
   return ini["VersionInfo"].has("JCI_BLM_AAPA-IHU");
 }
 
-void setup_sm() {
+void installer::setup_sm() {
   /// Configure SM to start autoapp on boot.
 
   backup("/jci/sm/sm.conf");
@@ -142,7 +150,7 @@ void setup_sm() {
 
 }
 
-void setup_mmui() {
+void installer::setup_mmui() {
   /// Setup the MMUI configuration.
   /// We need to increase the priority of androidauto in MMUI, so that it doesn't loose video focus to phone calls
 
@@ -166,7 +174,7 @@ void setup_mmui() {
 
 }
 
-void configure_opera() {
+void installer::configure_opera() {
   /// Configure Opera settings for Android Auto if not using a version of CMU Firmware that has it built in.
 
   backup("/jci/opera/opera_home/opera.ini");
@@ -188,20 +196,88 @@ void configure_opera() {
   }
 }
 
-int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
-  const auto path_backup = fs::absolute("/mnt/data_persist/dev/backup/");
-  fs::directory_entry dir_backup{path_backup};
-  if (!dir_backup.exists()) {
-    if (!fs::create_directory(path_backup)) {
-      LOG(ERROR) << "Couldn't create " << path_backup;
-      return -1;
+void installer::copy_file(const fs::path &from, const fs::path &to) {
+  if (std::filesystem::exists(to.parent_path())) {
+    mkdir(to.parent_path());
+    installed_files.emplace_back(to.parent_path());
+  }
+  try {
+    std::filesystem::copy(from, to);
+  }
+  catch (fs::filesystem_error &error){
+    LOG(INFO) << to << " " << error.what() << std::endl;
+  }
+  installed_files.emplace_back(to);
+}
+
+void installer::install_files(){
+  if(!checkAapaVersion()){
+    for (std::filesystem::recursive_directory_iterator i("jci"), end; i != end; ++i) {
+      if(!is_directory(i->path())){
+        std::filesystem::path path = "/";
+        path += std::filesystem::relative(i->path());
+        copy_file(std::filesystem::absolute(i->path()), path);
+      }
     }
   }
+  mkdir("/mnt/data_persist/dev/bin");
+  copy_file(fs::path("autoapp"), "/mnt/data_persist/dev/bin/autoapp");
+  if(std::filesystem::exists("autoapp_configuration.toml")){
+    copy_file("autoapp_configuration.toml", "/mnt/data_persist/dev/bin/autoapp_configuration.toml");
+  }
+}
 
-  install_bds();
-  setup_sm();
-  setup_mmui();
-  if (!checkAapaVersion()) {
-    configure_opera();
+void installer::generate_uninstaller(){
+  fs::path uninstall = "/mnt/data_persist/dev/bin/autoapp.uninstall";
+  installed_files.emplace_back(uninstall);
+  std::ofstream uninstallScript;
+  uninstallScript.open("/mnt/data_persist/dev/bin/autoapp.uninstall");
+  uninstallScript << "#!/bin/ash\n";
+  uninstallScript << "mount -o remount,rw / \n";
+  for(const auto& file: backup_files){
+    std::filesystem::path destination = "/";
+    destination += std::filesystem::relative(std::filesystem::absolute(file), backup_path);
+    uninstallScript << "mv " << file << " "  << destination << " \n";
+  }
+  uninstallScript << "rm -rf";
+  for(const auto& file: installed_files){
+    uninstallScript << " \\\n" << file;
+  }
+  uninstallScript << "printf \"Uninstalled\\n\"\n";
+  uninstallScript.close();
+  fs::permissions(uninstall, fs::perms::owner_exec|fs::perms::group_exec, fs::perm_options::add);
+}
+
+installer::installer(fs::path backup_dir): backup_path(std::move(backup_dir)) {
+
+}
+
+int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
+  if(mount("", "/", "", MS_REMOUNT|MS_NOATIME, "") != 0){
+    LOG(ERROR) << "Couldn't remount / rw";
+    exit(1);
+  }
+
+  fs::path uninstaller = "/mnt/data_persist/dev/bin/autoapp.uninstall";
+  if(fs::exists(uninstaller)){
+    LOG(INFO) << "Running uninstaller to cleanup old install";
+    system(uninstaller.c_str());
+  }
+
+  const auto path_backup = fs::absolute("/mnt/data_persist/dev/backup/");
+  installer install(path_backup);
+  install.mkdir(path_backup);
+  fs::directory_entry dir_backup{path_backup};
+
+  install.install_bds();
+  install.setup_sm();
+  install.setup_mmui();
+  if (!install.checkAapaVersion()) {
+    install.configure_opera();
+  }
+  install.install_files();
+  install.generate_uninstaller();
+  if(mount("", "/", "", MS_REMOUNT|MS_NOATIME|MS_RDONLY, "") != 0){
+    LOG(ERROR) << "Couldn't remount / ro";
   }
 }

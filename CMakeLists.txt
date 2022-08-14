@@ -222,7 +222,7 @@ if (DEFINED BUILD_MAZDA)
             TARGET autoapp POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy
             ${EXECUTABLE_OUTPUT_PATH}/autoapp
-            ${base_directory}/install/mnt/data_persist/dev/bin/)
+            ${base_directory}/install/)
 
 
     set(installer_sources_directory ${sources_directory}/installer)
@@ -269,11 +269,11 @@ if (DEFINED BUILD_MAZDA)
             TARGET aa_installer POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy
             ${EXECUTABLE_OUTPUT_PATH}/aa_installer
-            ${base_directory}/install/mnt/data_persist/dev/bin/)
+            ${base_directory}/install/)
 
 
     add_custom_target(create_tar ALL COMMAND
-            external/makeself.sh --target / --notemp --keep-umask --nochown install installer/openauto_installer.run openauto /mnt/data_persist/dev/bin/aa_installer
+            external/makeself.sh --target /tmp/autoapp --notemp --keep-umask --nochown install installer/openauto_installer.run openauto ./aa_installer
             WORKING_DIRECTORY ${base_directory})
     add_dependencies(create_tar autoapp)
     add_dependencies(create_tar aa_installer)
