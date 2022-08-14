@@ -3,7 +3,7 @@
 
 NightManager::NightManager(asio::io_service &IoService) : timer(IoService) {
 
-};
+}
 
 void NightManager::start() {
   std::lock_guard<std::mutex> lock(timerMutex);
