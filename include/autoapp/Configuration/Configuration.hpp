@@ -60,6 +60,9 @@ class Configuration : public IConfiguration {
 
   [[nodiscard]] std::string wifiPassword() override;
 
+  AudioConfiguration getAudioConfig();
+  void setAudioConfig(AudioConfiguration audioConfig);
+
  private:
 
   bool lefthandDrive_ = true;

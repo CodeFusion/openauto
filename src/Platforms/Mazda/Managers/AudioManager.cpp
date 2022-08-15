@@ -80,7 +80,8 @@ std::string AudioManager::RequestHandler(const std::string &methodName, const st
 void AudioManager::RegisterStream(std::string StreamName,
                                   aasdk::messenger::ChannelId ChannelId,
                                   std::string StreamMode,
-                                  std::string StreamType) {
+                                  std::string StreamType,
+                                  std::string StreamModeName) {
   if (!(StreamMode == "permanent" || StreamMode == "transient")) {
     return;
   }
@@ -102,7 +103,7 @@ void AudioManager::RegisterStream(std::string StreamName,
     json regArgs = {
         {"sessionId", SessionID},
         {"streamName", StreamName},
-        // { "streamModeName", aaStreamName },
+        { "streamModeName", StreamModeName},
         {"focusType", StreamMode},
         {"streamType", StreamType}
     };
@@ -244,8 +245,17 @@ void AudioManager::start() {
   AudioProxy = AudioInterface->getcom_xsembedded_ServiceProviderInterface();
 
   populateData();
-  RegisterStream("MLENT", aasdk::messenger::ChannelId::MEDIA_AUDIO, "permanent", "Media");
-  RegisterStream("Navi", aasdk::messenger::ChannelId::SPEECH_AUDIO, "transient", "InfoMix");
+
+  // If we don't have Android Auto audio destinations, use the old ones
+  if (std::find(MazdaDestinations.begin(), MazdaDestinations.end(), "AAMedia") == MazdaDestinations.end()) {
+    RegisterStream("MLENT", aasdk::messenger::ChannelId::MEDIA_AUDIO, "permanent", "Media", "Media");
+    RegisterStream("Navi", aasdk::messenger::ChannelId::SPEECH_AUDIO, "transient", "InfoMix", "InfoMix");
+  }
+  else {
+    RegisterStream("AAMedia", aasdk::messenger::ChannelId::MEDIA_AUDIO, "permanent", "AAMedia", "AAMedia");
+    RegisterStream("AAGuidance", aasdk::messenger::ChannelId::SPEECH_AUDIO, "transient", "AAGuidance", "AAGuidance");
+  }
+
   for (auto &stream : streams) {
     LOG(DEBUG) << aasdk::messenger::channelIdToString(stream.first) << " " << stream.second->id << ": "
                << stream.second->name;

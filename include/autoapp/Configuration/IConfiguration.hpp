@@ -27,7 +27,21 @@
 
 namespace autoapp::configuration {
 
+struct AudioChannel{
+  int rate;
+  int channels;
+  std::vector<std::string> outputs;
+};
+
+struct AudioConfiguration{
+ public:
+  std::map<std::string, AudioChannel> channels;
+};
+
 class IConfiguration {
+ protected:
+  AudioConfiguration audioConfiguration;
+
  public:
   using Pointer = std::shared_ptr<IConfiguration>;
 
@@ -60,6 +74,9 @@ class IConfiguration {
   [[nodiscard]] virtual std::string wifiSSID() = 0;
 
   [[nodiscard]] virtual std::string wifiPassword() = 0;
+
+  virtual AudioConfiguration getAudioConfig() = 0;
+  virtual void setAudioConfig(AudioConfiguration audioConfig) = 0;
 
 };
 

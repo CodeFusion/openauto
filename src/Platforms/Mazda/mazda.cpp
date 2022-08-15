@@ -37,13 +37,40 @@ Mazda::Mazda(asio::io_service &ioService, autoapp::configuration::IConfiguration
   session_connection = dispatcher->create_connection(DBus::BusType::SESSION);
   system_connection = dispatcher->create_connection(DBus::BusType::SYSTEM);
 
+  autoapp::configuration::AudioConfiguration audioConfig;
+  // Setup things that differ between CMU versions that have built in Android Auto, and earlier versions that do not.
   if (checkAapaVersion()) {
     LOG(DEBUG) << "Using Mazda Android Auto Video";
     videoManager = std::make_shared<AAPA>(session_connection);
+    LOG(DEBUG) << "Using Mazda AA Audio";
+    autoapp::configuration::AudioChannel mediaChannel;
+    mediaChannel.channels = 2;
+    mediaChannel.rate = 48000;
+    mediaChannel.outputs.emplace_back("androidautoMainAudio");
+    autoapp::configuration::AudioChannel speechChannel;
+    speechChannel.channels = 1;
+    speechChannel.rate = 16000;
+    speechChannel.outputs.emplace_back("androidautoAltAudio");
+    speechChannel.outputs.emplace_back("androidautoMainAudio");
+    audioConfig.channels.emplace("Media", std::move(mediaChannel));
+    audioConfig.channels.emplace("Speech", std::move(speechChannel));
   } else {
     LOG(DEBUG) << "Using internal Video handling";
     videoManager = std::make_shared<VideoManager>(session_connection);
+    autoapp::configuration::AudioChannel mediaChannel;
+    mediaChannel.channels = 2;
+    mediaChannel.rate = 48000;
+    mediaChannel.outputs.emplace_back("entertainmentMl");
+    autoapp::configuration::AudioChannel speechChannel;
+    speechChannel.channels = 1;
+    speechChannel.rate = 16000;
+    speechChannel.outputs.emplace_back("informationNavi");
+    speechChannel.outputs.emplace_back("entertainmentMl");
+    audioConfig.channels.emplace("Media", std::move(mediaChannel));
+    audioConfig.channels.emplace("Speech", std::move(speechChannel));
   }
+  configuration->setAudioConfig(std::move(audioConfig));
+
   gpsManager =  std::make_shared<GPSManager>(ioService, system_connection);
   nightManager = std::make_shared<NightManager>(ioService);
   audioManager = std::make_shared<AudioManager>(system_connection, ioService);
@@ -54,6 +81,7 @@ Mazda::Mazda(asio::io_service &ioService, autoapp::configuration::IConfiguration
 
   bluetoothManager = std::make_shared<BluetoothManager>(configuration, session_connection, ioService);
   signals = std::make_shared<Signals>(videoManager, audioManager, gpsManager, nightManager, bluetoothManager, navigationManager);
+
 }
 
 void Mazda::start() {

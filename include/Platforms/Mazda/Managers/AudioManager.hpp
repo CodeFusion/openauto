@@ -50,7 +50,8 @@ class AudioManager: public IAudioManager {
   void RegisterStream(std::string StreamName,
                       aasdk::messenger::ChannelId ChannelId,
                       std::string StreamMode,
-                      std::string StreamType);
+                      std::string StreamType,
+                      std::string StreamModeName);
 
   void populateData();
 

@@ -156,7 +156,7 @@ int main(int argc, char *argv[]) {
   device = std::make_shared<Mazda>(ioService, configuration);
 #endif
 #ifdef BUILD_RPI
-  device = std::make_shared<RPI>();
+  device = std::make_shared<RPI>(configuration);
 #endif
 
   aasdk::tcp::TCPWrapper tcpWrapper;

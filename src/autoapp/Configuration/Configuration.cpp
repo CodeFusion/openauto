@@ -149,5 +149,11 @@ std::string Configuration::wifiPassword() {
   }
   return wifiPassword_;
 }
+AudioConfiguration Configuration::getAudioConfig() {
+  return audioConfiguration;
+}
+void Configuration::setAudioConfig(AudioConfiguration audioConfig) {
+  audioConfiguration = audioConfig;
+}
 
 }

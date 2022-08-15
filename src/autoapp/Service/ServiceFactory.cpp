@@ -75,9 +75,13 @@ IService::Pointer ServiceFactory::createInputService(aasdk::messenger::IMessenge
 
 void ServiceFactory::createAudioServices(ServiceList &serviceList,
                                          const aasdk::messenger::IMessenger::Pointer &messenger) {
-  auto mediaAudioOutput = std::make_shared<projection::AlsaAudioOutput>(2, 48000, "entertainmentMl");
   std::vector<projection::IAudioOutput::Pointer> mediaOutputs;
-  mediaOutputs.emplace_back(std::move(mediaAudioOutput));
+  auto mediaConfig = configuration_->getAudioConfig().channels["Media"];
+  for (auto &output: mediaConfig.outputs){
+    auto audioOutput = std::make_shared<projection::AlsaAudioOutput>(mediaConfig.channels, mediaConfig.rate, output.c_str());
+    mediaOutputs.emplace_back(std::move(audioOutput));
+  }
+
   serviceList.emplace_back(std::make_shared<AudioService>(ioService_,
                                                           messenger,
                                                           aasdk::messenger::ChannelId::MEDIA_AUDIO,
@@ -85,11 +89,12 @@ void ServiceFactory::createAudioServices(ServiceList &serviceList,
                                                           signals_->audioManager));
 
   //Setup two outputs for this, as Android Auto doesn't mix the speech and entertainment channels automagically
-  auto speechAudioOutput1 = std::make_shared<projection::AlsaAudioOutput>(1, 16000, "informationNavi");
-  auto speechAudioOutput2 = std::make_shared<projection::AlsaAudioOutput>(1, 16000, "entertainmentMl");
   std::vector<projection::IAudioOutput::Pointer> speechOutputs;
-  speechOutputs.emplace_back(std::move(speechAudioOutput1));
-  speechOutputs.emplace_back(std::move(speechAudioOutput2));
+  auto speechConfig = configuration_->getAudioConfig().channels["Speech"];
+  for (auto &output: speechConfig.outputs){
+    auto audioOutput = std::make_shared<projection::AlsaAudioOutput>(speechConfig.channels, speechConfig.rate, output.c_str());
+    speechOutputs.emplace_back(std::move(audioOutput));
+  }
   serviceList.emplace_back(std::make_shared<AudioService>(ioService_,
                                                           messenger,
                                                           aasdk::messenger::ChannelId::SPEECH_AUDIO,
