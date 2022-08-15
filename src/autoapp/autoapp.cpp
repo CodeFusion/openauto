@@ -31,6 +31,7 @@
 #include <autoapp/Configuration/Configuration.hpp>
 #include "Platforms/Mazda/mazda.hpp"
 #include <Platforms/RPI/RPI.hpp>
+#include <iomanip>
 #include "autoapp/Platform/IPlatform.hpp"
 
 using ThreadPool = std::vector<std::thread>;
@@ -96,42 +97,31 @@ void signalHandler(int signum) {
 int main(int argc, char *argv[]) {
   auto start_time = std::chrono::high_resolution_clock::now();
 
-
-  /*                              */
-
   auto configuration = std::make_shared<autoapp::configuration::Configuration>();
 
   el::Configurations defaultConf;
   defaultConf.setToDefault();
   el::Loggers::addFlag(el::LoggingFlag::HierarchicalLogging);
-  if (!configuration->logFile().empty()) {
-    defaultConf.set(el::Level::Global, el::ConfigurationType::Filename, configuration->logFile());
-    defaultConf.set(el::Level::Global, el::ConfigurationType::ToFile, "true");
-    defaultConf.set(el::Level::Global, el::ConfigurationType::ToStandardOutput, "false");
-  }
-  el::Helpers::installCustomFormatSpecifier(el::CustomFormatSpecifier("%ts",
-                                                                      [start_time](const el::LogMessage *) {
-                                                                        auto current_time =
-                                                                            std::chrono::high_resolution_clock::now();
-                                                                        char buf[50];
-                                                                        float_t ts =
-                                                                            std::chrono::duration_cast<std::chrono::milliseconds>(
-                                                                                current_time - start_time).count()
-                                                                                / 1000.00;
-                                                                        snprintf(buf, sizeof(buf), "%.3f", ts);
-                                                                        std::string out = buf;
-                                                                        return out;
-                                                                      }));
+  defaultConf.set(el::Level::Global, el::ConfigurationType::Filename, "/tmp/autoapp.log");
+  defaultConf.set(el::Level::Global, el::ConfigurationType::ToFile, "true");
+  defaultConf.set(el::Level::Global, el::ConfigurationType::ToStandardOutput, "false");
+
+  std::function<std::string(const el::LogMessage *)> timeFormatter = [start_time](const el::LogMessage *) {
+    auto current_time = std::chrono::high_resolution_clock::now();
+    std::ostringstream out;
+    float_t ts = std::chrono::duration_cast<std::chrono::milliseconds>(current_time - start_time).count() / 1000.00;
+    out << std::fixed << std::setprecision(3) << ts;
+    return out.str();
+  };
+
+  el::Helpers::installCustomFormatSpecifier(el::CustomFormatSpecifier("%ts", timeFormatter));
   // Values are always std::string
-  defaultConf.set(el::Level::Info,
-                  el::ConfigurationType::Format, "%ts %levshort [%fbase] %msg");
-  defaultConf.set(el::Level::Debug,
-                  el::ConfigurationType::Format, "%ts %levshort [%fbase] [%func] %msg");
-  defaultConf.set(el::Level::Error,
-                  el::ConfigurationType::Format, "%ts %levshort [%fbase] [%func] %msg");
+  defaultConf.set(el::Level::Info, el::ConfigurationType::Format, "%ts %levshort [%fbase] %msg");
+  defaultConf.set(el::Level::Debug, el::ConfigurationType::Format, "%ts %levshort [%fbase] [%func] %msg");
+  defaultConf.set(el::Level::Error, el::ConfigurationType::Format, "%ts %levshort [%fbase] [%func] %msg");
   // default logger uses default configurations
   el::Loggers::reconfigureLogger("default", defaultConf);
-  el::Loggers::setLoggingLevel(configuration->logLevel());
+  el::Loggers::setLoggingLevel(el::Level::Debug);
 
   LOG(INFO) << "[OpenAuto] starting";
   signal(SIGINT, signalHandler);
