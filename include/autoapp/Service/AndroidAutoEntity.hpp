@@ -24,7 +24,7 @@
 #include <aasdk/Channel/Control/IControlServiceChannelEventHandler.hpp>
 #include <aasdk/Channel/AV/VideoServiceChannel.hpp>
 #include <aasdk/IO/Promise.hpp>
-#include <autoapp/Configuration/IConfiguration.hpp>
+#include <autoapp/Configuration/Configuration.hpp>
 #include <autoapp/Service/IAndroidAutoEntity.hpp>
 #include <autoapp/Service/IService.hpp>
 #include <autoapp/Service/IPinger.hpp>
@@ -41,7 +41,7 @@ class AndroidAutoEntity
                     aasdk::messenger::ICryptor::Pointer cryptor,
                     aasdk::transport::ITransport::Pointer transport,
                     aasdk::messenger::IMessenger::Pointer messenger,
-                    configuration::IConfiguration::Pointer configuration,
+                    configuration::Configuration::Pointer configuration,
                     ServiceList serviceList,
                     IPinger::Pointer pinger,
                     IPlatform::Pointer Device);
@@ -78,7 +78,7 @@ class AndroidAutoEntity
   aasdk::transport::ITransport::Pointer transport_;
   aasdk::messenger::IMessenger::Pointer messenger_;
   aasdk::channel::control::IControlServiceChannel::Pointer controlServiceChannel_;
-  configuration::IConfiguration::Pointer configuration_;
+  configuration::Configuration::Pointer configuration_;
   ServiceList serviceList_;
   IPinger::Pointer pinger_;
   IAndroidAutoEntityEventHandler *eventHandler_;

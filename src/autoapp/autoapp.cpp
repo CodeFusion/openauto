@@ -166,7 +166,7 @@ int main(int argc, char *argv[]) {
                                             androidAutoEntityFactory,
                                             std::move(usbHub),
                                             std::move(connectedAccessoriesEnumerator),
-                                            configuration->wifiPort());
+                                            configuration->getWifiConfig()->port);
 
   app->waitForUSBDevice();
 

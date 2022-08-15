@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include <autoapp/Configuration/IConfiguration.hpp>
+#include <autoapp/Configuration/Configuration.hpp>
 #include <autoapp/Service/IService.hpp>
 #include <asio/io_service.hpp>
 #include <aasdk/Messenger/IMessenger.hpp>
@@ -29,7 +29,7 @@ class WifiService : public IService, public std::enable_shared_from_this<WifiSer
  public:
   using Pointer = std::shared_ptr<WifiService>;
 
-  explicit WifiService(configuration::IConfiguration::Pointer configuration);
+  explicit WifiService(configuration::Configuration::Pointer configuration);
 
   void start() override;
   void stop() override;
@@ -39,7 +39,7 @@ class WifiService : public IService, public std::enable_shared_from_this<WifiSer
 
  private:
   using std::enable_shared_from_this<WifiService>::shared_from_this;
-  configuration::IConfiguration::Pointer configuration_;
+  configuration::Configuration::Pointer configuration_;
 };
 
 }

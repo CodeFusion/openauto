@@ -13,7 +13,7 @@
 #include "external/aasdk/aasdk_proto/WifiInfoResponseMessage.pb.h"
 #include "external/aasdk/aasdk_proto/WifiSecurityResponseMessage.pb.h"
 
-#include "autoapp/Configuration/IConfiguration.hpp"
+#include "autoapp/Configuration/Configuration.hpp"
 
 #include <com_jci_bca_objectProxy.h>
 #include <asio/basic_waitable_timer.hpp>
@@ -32,7 +32,7 @@ class BluetoothManager : public IBluetoothManager {
  public:
   using Pointer = std::shared_ptr<BluetoothManager>;
 
-  explicit BluetoothManager(autoapp::configuration::IConfiguration::Pointer configuration,
+  explicit BluetoothManager(autoapp::configuration::Configuration::Pointer configuration,
                             std::shared_ptr<DBus::Connection> session_connection, asio::io_service &ioService);
   ~BluetoothManager() override = default;
 
@@ -42,7 +42,7 @@ class BluetoothManager : public IBluetoothManager {
   void aaConnect(bool connected);
 
  private:
-  autoapp::configuration::IConfiguration::Pointer configuration_;
+  autoapp::configuration::Configuration::Pointer configuration_;
   std::shared_ptr<DBus::Connection> dbusConnection;
   bool bdsconfigured = false;
   uint32_t serviceId = 0;
@@ -58,7 +58,7 @@ class BluetoothManager : public IBluetoothManager {
 
 class MazdaBluetoothConnection: public BluetoothConnection{
  public:
-  MazdaBluetoothConnection(std::string SSID, std::string Password, std::string IpAddress, std::string MacAddress, uint32_t Port);
+  MazdaBluetoothConnection(autoapp::configuration::WifiConfiguration::pointer WifiConfig);
   void handle_connect(const std::string &pty);
 
  protected:

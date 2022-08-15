@@ -18,61 +18,68 @@
 
 #pragma once
 
-#include <autoapp/Configuration/IConfiguration.hpp>
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-result"
-#include <toml.hpp>
-#pragma GCC diagnostic pop
-
 #include <fstream>
+#include <vector>
+#include <map>
+#include <memory>
 
 namespace autoapp::configuration {
 
-class Configuration : public IConfiguration {
+
+struct AudioChannel{
+  int rate;
+  int channels;
+  std::vector<std::string> outputs;
+};
+
+struct AudioConfiguration{
  public:
+  std::map<std::string, AudioChannel> channels;
+};
+
+struct ServiceConfiguration {
+  std::string name;
+  std::string carModel;
+  std::string carYear;
+  std::string carSerial;
+  bool leftHandDrive;
+  std::string huManufacturer;
+  std::string huModel;
+  std::string huBuild;
+  std::string huVersion;
+  bool nativeMediaDuringVR;
+};
+
+struct WifiConfiguration {
+  using pointer = std::shared_ptr<WifiConfiguration>;
+  bool enabled;
+  std::string device;
+  std::string ssid;
+  std::string bssid;
+  std::string password;
+  std::string ipAddress;
+  uint32_t port = 30515;
+};
+
+class Configuration {
+ private:
+  AudioConfiguration audioConfiguration;
+  ServiceConfiguration serviceConfiguration;
+  WifiConfiguration::pointer wifiConfiguration;
+
+ public:
+  using Pointer = std::shared_ptr<Configuration>;
+
   Configuration();
-
-  void reset() override;
-
-  void save() override;
-
-  void leftHandDrive(bool value) override;
-
-  [[nodiscard]] bool leftHandDrive() const override;
-
-  void hideClock(bool value) override;
-
-  [[nodiscard]] bool hideClock() const override;
-
-  [[nodiscard]] bool getTouchscreenEnabled() const override;
-
-  void setTouchscreenEnabled(bool value) override;
-
-  [[nodiscard]] uint32_t wifiPort() override;
-
-  void wifiPort(uint32_t port) override;
-
-  [[nodiscard]] el::Level logLevel() override;
-
-  [[nodiscard]] std::string logFile() override;
-
-  [[nodiscard]] std::string wifiSSID() override;
-
-  [[nodiscard]] std::string wifiPassword() override;
 
   AudioConfiguration getAudioConfig();
   void setAudioConfig(AudioConfiguration audioConfig);
 
- private:
+  ServiceConfiguration getServiceConfig();
+  void setServiceConfig(ServiceConfiguration serviceConfig);
 
-  bool lefthandDrive_ = true;
-  bool hideClock_ = false;
-  bool enableTouchscreen_ = true;
-  int wifiPort_ = 30515;
-  el::Level logLevel_ = el::Level::Debug;
-  std::string logFile_;
-  std::string wifiSSID_;
-  std::string wifiPassword_;
+  WifiConfiguration::pointer getWifiConfig();
+  void setWifiConfig(WifiConfiguration::pointer wifiConfig);
 };
 
 }

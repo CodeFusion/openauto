@@ -34,7 +34,7 @@
 namespace autoapp::service {
 
 ServiceFactory::ServiceFactory(asio::io_service &ioService,
-                               configuration::IConfiguration::Pointer configuration,
+                               configuration::Configuration::Pointer configuration,
                                Signals::Pointer signals)
     : ioService_(ioService), configuration_(std::move(configuration)), signals_(signals) {
 

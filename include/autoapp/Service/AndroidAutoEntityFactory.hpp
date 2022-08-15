@@ -20,7 +20,7 @@
 
 #include <asio.hpp>
 #include <aasdk/Transport/ITransport.hpp>
-#include <autoapp/Configuration/IConfiguration.hpp>
+#include <autoapp/Configuration/Configuration.hpp>
 #include <autoapp/Service/IAndroidAutoEntityFactory.hpp>
 #include <autoapp/Service/IServiceFactory.hpp>
 #include <autoapp/Platform/IPlatform.hpp>
@@ -30,7 +30,7 @@ namespace autoapp::service {
 class AndroidAutoEntityFactory : public IAndroidAutoEntityFactory {
  public:
   AndroidAutoEntityFactory(asio::io_service &ioService,
-                           configuration::IConfiguration::Pointer configuration,
+                           configuration::Configuration::Pointer configuration,
                            IServiceFactory &serviceFactory,
                            IPlatform::Pointer device);
 
@@ -41,7 +41,7 @@ class AndroidAutoEntityFactory : public IAndroidAutoEntityFactory {
   IAndroidAutoEntity::Pointer create(aasdk::transport::ITransport::Pointer transport);
 
   asio::io_service &ioService_;
-  configuration::IConfiguration::Pointer configuration_;
+  configuration::Configuration::Pointer configuration_;
   IServiceFactory &serviceFactory_;
   IPlatform::Pointer device;
 };

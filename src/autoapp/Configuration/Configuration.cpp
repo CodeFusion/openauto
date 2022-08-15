@@ -22,138 +22,31 @@
 namespace autoapp::configuration {
 
 Configuration::Configuration() {
-  try {
-    toml::table config = toml::parse_file("/mnt/data_persist/dev/bin/autoapp_configuration.toml");
-    if (config.contains("lefthandDrive")) {
-      lefthandDrive_ = config["lefthandDrive"].as_boolean();
-    }
-    if (config.contains("hideClock")) {
-      hideClock_ = config["hideClock"].as_boolean();
-    }
-    if (config.contains("enableTouchscreen")) {
-      enableTouchscreen_ = config["enableTouchscreen"].as_boolean();
-    }
-    if (config.contains("wifiPort")) {
-      wifiPort_ = static_cast<uint32_t>(config["wifiPort"].as_integer()->value_or(30515));
-    }
-    if (config.contains("logLevel")) {
-      std::optional<std::string> level = config["logLevel"].value<std::string>();
-      if (level == "debug") {
-        logLevel_ = el::Level::Debug;
-      } else {
-        logLevel_ = el::Level::Fatal;
-      }
-    }
-    if (config.contains("logFile")) {
-      std::optional<std::string> logfile = config["logFile"].value<std::string>();
-      logFile_.assign(*logfile);
-    }
-    if (config.contains("wifiSSID")) {
-      std::optional<std::string> wifissid = config["wifiSSID"].value<std::string>();
-      wifiSSID_.assign(*wifissid);
-    }
-    if (config.contains("wifiPassword")) {
-      std::optional<std::string> wifipassword = config["wifiPassword"].value<std::string>();
-      wifiPassword_.assign(*wifipassword);
-    }
-  }
-  catch (const toml::parse_error &err) {
-    LOG(ERROR) << err;
-  }
+  wifiConfiguration = std::make_shared<WifiConfiguration>();
 }
 
-void Configuration::reset() {
-  lefthandDrive_ = true;
-  hideClock_ = false;
-  enableTouchscreen_ = true;
-  wifiPort_ = 30515;
-}
-
-void Configuration::save() {
-
-}
-
-void Configuration::leftHandDrive(bool value) {
-  lefthandDrive_ = value;
-}
-
-bool Configuration::leftHandDrive() const {
-  return lefthandDrive_;
-}
-
-void Configuration::hideClock(bool value) {
-  hideClock_ = value;
-}
-
-bool Configuration::hideClock() const {
-  return hideClock_;
-}
-
-bool Configuration::getTouchscreenEnabled() const {
-  return enableTouchscreen_;
-}
-
-void Configuration::setTouchscreenEnabled(bool value) {
-  enableTouchscreen_ = value;
-}
-uint32_t Configuration::wifiPort() {
-  return wifiPort_;
-}
-void Configuration::wifiPort(uint32_t port) {
-  wifiPort_ = port;
-}
-
-el::Level Configuration::logLevel() {
-  return logLevel_;
-}
-
-std::string Configuration::logFile() {
-  return logFile_;
-}
-
-std::string hostapd_config(const std::string &key) {
-  std::ifstream hostapd_file;
-  hostapd_file.open("/tmp/current-session-hostapd.conf");
-
-  if (hostapd_file) {
-    std::string line;
-    size_t pos;
-    while (hostapd_file.good()) {
-      getline(hostapd_file, line); // get line from file
-      if (line[0] != '#') {
-        pos = line.find(key); // search
-        if (pos != std::string::npos) // string::npos is returned if string is not found
-        {
-          size_t equalPosition = line.find('=');
-          std::string value = line.substr(equalPosition + 1);
-          LOG(DEBUG) << value;
-          return value;
-        }
-      }
-    }
-    return "";
-  }
-    return "";
-}
-
-std::string Configuration::wifiSSID() {
-  if (wifiSSID_.empty()) {
-    return hostapd_config("ssid");
-  }
-  return wifiSSID_;
-}
-
-std::string Configuration::wifiPassword() {
-  if (wifiPassword_.empty()) {
-    return hostapd_config("wpa_passphrase");
-  }
-  return wifiPassword_;
-}
 AudioConfiguration Configuration::getAudioConfig() {
   return audioConfiguration;
 }
+
 void Configuration::setAudioConfig(AudioConfiguration audioConfig) {
   audioConfiguration = audioConfig;
+}
+
+ServiceConfiguration Configuration::getServiceConfig() {
+  return serviceConfiguration;
+}
+
+void Configuration::setServiceConfig(ServiceConfiguration serviceConfig) {
+  serviceConfiguration = serviceConfig;
+}
+
+WifiConfiguration::pointer Configuration::getWifiConfig() {
+  return wifiConfiguration;
+}
+
+void Configuration::setWifiConfig(WifiConfiguration::pointer wifiConfig) {
+  wifiConfiguration = wifiConfig;
 }
 
 }

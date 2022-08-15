@@ -19,7 +19,7 @@
 #pragma once
 
 #include <autoapp/Service/IServiceFactory.hpp>
-#include <autoapp/Configuration/IConfiguration.hpp>
+#include <autoapp/Configuration/Configuration.hpp>
 #include <autoapp/Signals/Signals.hpp>
 
 namespace autoapp::service {
@@ -27,7 +27,7 @@ namespace autoapp::service {
 class ServiceFactory : public IServiceFactory {
  public:
   ServiceFactory(asio::io_service &ioService,
-                 configuration::IConfiguration::Pointer configuration,
+                 configuration::Configuration::Pointer configuration,
                   Signals::Pointer signals);
   ServiceList create(aasdk::messenger::IMessenger::Pointer messenger) override;
 
@@ -38,7 +38,7 @@ class ServiceFactory : public IServiceFactory {
   void createAudioServices(ServiceList &serviceList, const aasdk::messenger::IMessenger::Pointer &messenger);
 
   asio::io_service &ioService_;
-  configuration::IConfiguration::Pointer configuration_;
+  configuration::Configuration::Pointer configuration_;
   Signals::Pointer signals_;
 };
 

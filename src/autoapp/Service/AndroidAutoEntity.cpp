@@ -28,7 +28,7 @@ AndroidAutoEntity::AndroidAutoEntity(asio::io_service &ioService,
                                      aasdk::messenger::ICryptor::Pointer cryptor,
                                      aasdk::transport::ITransport::Pointer transport,
                                      aasdk::messenger::IMessenger::Pointer messenger,
-                                     configuration::IConfiguration::Pointer configuration,
+                                     configuration::Configuration::Pointer configuration,
                                      ServiceList serviceList,
                                      IPinger::Pointer pinger,
                                      IPlatform::Pointer Device)
@@ -176,17 +176,18 @@ void AndroidAutoEntity::onServiceDiscoveryRequest(const aasdk::proto::messages::
 
   aasdk::proto::messages::ServiceDiscoveryResponse serviceDiscoveryResponse;
   serviceDiscoveryResponse.mutable_channels()->Reserve(256);
-  serviceDiscoveryResponse.set_head_unit_name("Crankshaft-NG");
-  serviceDiscoveryResponse.set_car_model("Universal");
-  serviceDiscoveryResponse.set_car_year("2018");
-  serviceDiscoveryResponse.set_car_serial("20180301");
-  serviceDiscoveryResponse.set_left_hand_drive_vehicle(configuration_->leftHandDrive());
-  serviceDiscoveryResponse.set_headunit_manufacturer("f1x");
-  serviceDiscoveryResponse.set_headunit_model("Crankshaft-NG Autoapp");
-  serviceDiscoveryResponse.set_sw_build("1");
-  serviceDiscoveryResponse.set_sw_version("1.0");
-  serviceDiscoveryResponse.set_can_play_native_media_during_vr(false);
-  serviceDiscoveryResponse.set_hide_clock(configuration_->hideClock());
+  configuration::ServiceConfiguration serviceConfig = configuration_->getServiceConfig();
+  serviceDiscoveryResponse.set_head_unit_name(serviceConfig.name);
+  serviceDiscoveryResponse.set_car_model(serviceConfig.carModel);
+  serviceDiscoveryResponse.set_car_year(serviceConfig.carYear);
+  serviceDiscoveryResponse.set_car_serial(serviceConfig.carSerial);
+  serviceDiscoveryResponse.set_left_hand_drive_vehicle(serviceConfig.leftHandDrive);
+  serviceDiscoveryResponse.set_headunit_manufacturer(serviceConfig.huManufacturer);
+  serviceDiscoveryResponse.set_headunit_model(serviceConfig.huModel);
+  serviceDiscoveryResponse.set_sw_build(serviceConfig.huBuild);
+  serviceDiscoveryResponse.set_sw_version(serviceConfig.huVersion);
+  serviceDiscoveryResponse.set_can_play_native_media_during_vr(serviceConfig.nativeMediaDuringVR);
+  serviceDiscoveryResponse.set_hide_clock(false);
 
   std::for_each(serviceList_.begin(),
                 serviceList_.end(),

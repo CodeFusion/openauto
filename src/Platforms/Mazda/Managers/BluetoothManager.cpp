@@ -10,7 +10,7 @@
 #include  <iomanip>
 #include <utility>
 
-BluetoothManager::BluetoothManager(autoapp::configuration::IConfiguration::Pointer configuration,
+BluetoothManager::BluetoothManager(autoapp::configuration::Configuration::Pointer configuration,
                                    std::shared_ptr<DBus::Connection> session_connection, asio::io_service &ioService)
     : configuration_(std::move(configuration)), dbusConnection(std::move(session_connection)), timer(ioService) {
 
@@ -27,7 +27,7 @@ void BluetoothManager::ConnectionStatusResp(uint32_t found_serviceId, uint32_t c
     std::string pty(tpath.begin(), tpath.end());
     LOG(DEBUG) << "PTY: " << pty;
     update_connection_info();
-    MazdaBluetoothConnection bconnection(configuration_->wifiSSID(), configuration_->wifiPassword(), info.ipAddress, info.macAddress, configuration_->wifiPort());
+    MazdaBluetoothConnection bconnection(configuration_->getWifiConfig());
     bconnection.handle_connect(pty);
   }
 }
@@ -68,15 +68,7 @@ void BluetoothManager::stop() {
   bcaClient.reset();
 }
 
-MazdaBluetoothConnection::MazdaBluetoothConnection(std::string SSID,
-                                                   std::string Password,
-                                                   std::string IpAddress,
-                                                   std::string MacAddress,
-                                                   uint32_t Port) : BluetoothConnection(std::move(SSID),
-                                                                                        std::move(Password),
-                                                                                        std::move(IpAddress),
-                                                                                        std::move(MacAddress),
-                                                                                        Port) {
+MazdaBluetoothConnection::MazdaBluetoothConnection(autoapp::configuration::WifiConfiguration::pointer WifiConfig) : BluetoothConnection(std::move(WifiConfig)) {
 }
 
 ssize_t MazdaBluetoothConnection::read(char *buf, ssize_t size){
@@ -100,12 +92,12 @@ void MazdaBluetoothConnection::handle_connect(const std::string &pty) {
   fd = open(pty.c_str(), O_RDWR | O_NOCTTY | O_NONBLOCK);
 
   std::ostringstream check_iptables;
-  check_iptables << "iptables -L |grep -c " << port;
+  check_iptables << "iptables -L |grep -c " << wifiConfig->port;
   LOG(DEBUG) << check_iptables.str();
   int result = system(check_iptables.str().c_str());
   if (result != 0) {
     std::ostringstream iptables_cmd;
-    iptables_cmd << "iptables -A INPUT -p tcp --dport " << port
+    iptables_cmd << "iptables -A INPUT -p tcp --dport " << wifiConfig->port
                  << " -m state --state NEW,ESTABLISHED -j ACCEPT";
     LOG(DEBUG) << iptables_cmd.str();
     system(iptables_cmd.str().c_str());
@@ -121,6 +113,7 @@ int BluetoothManager::update_connection_info() {
   int fileDescriptor;
   struct ifreq ifr{};
   const std::string iface = "wlan0";
+  autoapp::configuration::WifiConfiguration::pointer wifiConfig = configuration_->getWifiConfig();
 
   fileDescriptor = socket(AF_INET, SOCK_DGRAM, 0);
 
@@ -137,9 +130,9 @@ int BluetoothManager::update_connection_info() {
     }
     macString << static_cast<int>(ifr.ifr_hwaddr.sa_data[position]);
   }
-  info.macAddress.assign(macString.str());
+  wifiConfig->bssid.assign(macString.str());
   ioctl(fileDescriptor, SIOCGIFADDR, &ifr);
-  info.ipAddress = inet_ntoa(((struct sockaddr_in *) &ifr.ifr_addr)->sin_addr);
+  wifiConfig->ipAddress = inet_ntoa(((struct sockaddr_in *) &ifr.ifr_addr)->sin_addr);
 
   close(fileDescriptor);
 

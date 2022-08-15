@@ -2,24 +2,17 @@
 #include <utility>
 #include "aasdk_proto/WifiInfoResponseMessage.pb.h"
 #include "aasdk_proto/WifiSecurityResponseMessage.pb.h"
+#include <easylogging++.h>
 
-BluetoothConnection::BluetoothConnection(std::string SSID,
-                                         std::string Password,
-                                         std::string IpAddress,
-                                         std::string MacAddress,
-                                         uint32_t Port)
-    : ipAddress(std::move(IpAddress)),
-      macAddress(std::move(MacAddress)),
-      ssid(std::move(SSID)),
-      password(std::move(Password)),
-      port(Port) {
-  LOG(DEBUG) << "Got IP: " << ipAddress << " MAC: " << macAddress;
+BluetoothConnection::BluetoothConnection(autoapp::configuration::WifiConfiguration::pointer WifiConfig)
+    : wifiConfig(std::move(WifiConfig)) {
+  LOG(DEBUG) << "Got IP: " << wifiConfig->ipAddress << " BSSID: " << wifiConfig->bssid;
 }
 
 void BluetoothConnection::handleWifiInfoRequest() {
   aasdk::proto::messages::WifiInfoResponse response;
-  response.set_ip_address(ipAddress.c_str());
-  response.set_port(port);
+  response.set_ip_address(wifiConfig->ipAddress.c_str());
+  response.set_port(wifiConfig->port);
   response.set_status(aasdk::proto::messages::WifiInfoResponse_Status_STATUS_SUCCESS);
 
   sendMessage(response, IBluetoothManager::wifiMessages::WifiInfoRequestResponse);
@@ -29,9 +22,9 @@ void BluetoothConnection::handleWifiSecurityRequest(__attribute__((unused)) uint
                                                     __attribute__((unused)) uint16_t length) {
   aasdk::proto::messages::WifiSecurityReponse response;
 
-  response.set_ssid(ssid.c_str());
-  response.set_bssid(macAddress.c_str());
-  response.set_key(password.c_str());
+  response.set_ssid(wifiConfig->ssid.c_str());
+  response.set_bssid(wifiConfig->bssid.c_str());
+  response.set_key(wifiConfig->password.c_str());
   response.set_security_mode(aasdk::proto::messages::WifiSecurityReponse_SecurityMode_WPA2_PERSONAL);
   response.set_access_point_type(aasdk::proto::messages::WifiSecurityReponse_AccessPointType_DYNAMIC);
 

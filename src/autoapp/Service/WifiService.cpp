@@ -22,7 +22,7 @@
 
 namespace autoapp::service {
 
-WifiService::WifiService(configuration::IConfiguration::Pointer configuration)
+WifiService::WifiService(configuration::Configuration::Pointer configuration)
     : configuration_(std::move(configuration)) {
 
 }

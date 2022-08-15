@@ -22,7 +22,7 @@
 
 class Mazda: public IPlatform{
  public:
-  Mazda(asio::io_service &ioService, autoapp::configuration::IConfiguration::Pointer configuration);
+  Mazda(asio::io_service &ioService, const autoapp::configuration::Configuration::Pointer& configuration);
 
   void start() override;
   void stop() override;
@@ -39,6 +39,9 @@ class Mazda: public IPlatform{
   BluetoothManager::Pointer bluetoothManager;
   INavigationManager::Pointer navigationManager;
   HttpManager *httpManager;
+
+ private:
+  static std::string hostapd_config(const std::string &key);
 
 };
 

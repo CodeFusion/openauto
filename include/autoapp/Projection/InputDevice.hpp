@@ -28,7 +28,6 @@
 #include <aasdk_proto/TouchActionEnum.pb.h>
 #include <aasdk/IO/Promise.hpp>
 #include <autoapp/Projection/IInputDevice.hpp>
-#include <autoapp/Configuration/IConfiguration.hpp>
 #include <autoapp/Signals/Signals.hpp>
 
 struct TouchScreenState {

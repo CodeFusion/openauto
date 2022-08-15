@@ -3,6 +3,7 @@
 //
 #ifdef BUILD_MAZDA
 #include "Platforms/Mazda/mazda.hpp"
+#include <version.h>
 
 #include <cstdlib>
 #include <unistd.h>
@@ -11,6 +12,8 @@
 #define MINI_CASE_SENSITIVE
 #include "ini.h"
 
+#include <easylogging++.h>
+
 bool checkAapaVersion() {
   mINI::INIFile file("/jci/version.ini");
   mINI::INIStructure ini;
@@ -18,7 +21,7 @@ bool checkAapaVersion() {
   return ini["VersionInfo"].has("JCI_BLM_AAPA-IHU");
 }
 
-Mazda::Mazda(asio::io_service &ioService, autoapp::configuration::IConfiguration::Pointer configuration) {
+Mazda::Mazda(asio::io_service &ioService, const autoapp::configuration::Configuration::Pointer& configuration) {
   /* Do some Mazda Specific Setup */
   setenv("DBUS_SYSTEM_BUS_ADDRESS", "unix:path=/tmp/dbus_service_socket", 1);
   setenv("DBUS_SESSION_BUS_ADDRESS", "unix:path=/tmp/dbus_hmi_socket", 1);
@@ -70,6 +73,22 @@ Mazda::Mazda(asio::io_service &ioService, autoapp::configuration::IConfiguration
     audioConfig.channels.emplace("Speech", std::move(speechChannel));
   }
   configuration->setAudioConfig(std::move(audioConfig));
+  autoapp::configuration::ServiceConfiguration serviceConfig;
+  serviceConfig.name = "OpenAuto";
+  serviceConfig.carModel = "Mazda";
+  serviceConfig.carYear = "2018";
+  serviceConfig.carSerial = "1234";
+  serviceConfig.leftHandDrive = false;
+  serviceConfig.huManufacturer = "N/A";
+  serviceConfig.huModel = "N/A";
+  serviceConfig.huBuild = OPENAUTO_VERSION;
+  serviceConfig.huVersion = "1";
+  serviceConfig.nativeMediaDuringVR = false;
+  configuration->setServiceConfig(std::move(serviceConfig));
+
+  configuration->getWifiConfig()->ssid = hostapd_config("ssid");
+  configuration->getWifiConfig()->password = hostapd_config("wpa_passphrase");
+
 
   gpsManager =  std::make_shared<GPSManager>(ioService, system_connection);
   nightManager = std::make_shared<NightManager>(ioService);
@@ -98,6 +117,31 @@ void Mazda::stop() {
   audioManager->stop();
   httpManager->handle_aa_connect(false);
   bluetoothManager->aaConnect(false);
+}
+
+std::string Mazda::hostapd_config(const std::string &key) {
+  std::ifstream hostapd_file;
+  hostapd_file.open("/tmp/current-session-hostapd.conf");
+
+  if (hostapd_file) {
+    std::string line;
+    size_t pos;
+    while (hostapd_file.good()) {
+      getline(hostapd_file, line); // get line from file
+      if (line[0] != '#') {
+        pos = line.find(key); // search
+        if (pos != std::string::npos) // string::npos is returned if string is not found
+        {
+          size_t equalPosition = line.find('=');
+          std::string value = line.substr(equalPosition + 1);
+          LOG(DEBUG) << value;
+          return value;
+        }
+      }
+    }
+    return "";
+  }
+  return "";
 }
 #endif
 
