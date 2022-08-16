@@ -4,12 +4,12 @@
 #include "installer/main.hpp"
 #include "easylogging++.h"
 #include "sys/mount.h"
+#include <getopt.h>
 
 #define MINI_CASE_SENSITIVE
 #include <ini.h>
 
 INITIALIZE_EASYLOGGINGPP
-
 
 int installer::mkdir(const fs::path &path) {
   fs::directory_entry dir_path{path};
@@ -33,7 +33,7 @@ void installer::backup(const fs::path &path) {
       try {
         fs::copy(path, backup_destination);
       }
-      catch (fs::filesystem_error &error){
+      catch (fs::filesystem_error &error) {
         LOG(INFO) << backup_destination << " " << error.what() << std::endl;
       }
     }
@@ -58,7 +58,8 @@ void installer::install_bds() {
   } else {
     int lastId = 0;
     bool bdsconfigured = false;
-    for (tinyxml2::XMLElement *element = serviceconfig->FirstChildElement(); element != nullptr; element = element->NextSiblingElement()) {
+    for (tinyxml2::XMLElement *element = serviceconfig->FirstChildElement(); element != nullptr;
+         element = element->NextSiblingElement()) {
       lastId = element->IntAttribute("id", lastId);
       if (std::string(element->Attribute("name")) == "AndroidAuto") {
         bdsconfigured = true;
@@ -108,7 +109,8 @@ void installer::setup_sm() {
     LOG(DEBUG) << "Couldn't find services in /jci/sm/sm.conf";
   } else {
     bool serviceconfigured = false;
-    for (tinyxml2::XMLElement *element = serviceconfig->FirstChildElement(); element != nullptr; element = element->NextSiblingElement()) {
+    for (tinyxml2::XMLElement *element = serviceconfig->FirstChildElement(); element != nullptr;
+         element = element->NextSiblingElement()) {
       if (std::string(element->Attribute("name")) == "autoapp") {
         serviceconfigured = true;
         LOG(INFO) << "/jci/sm/sm.conf already configured";
@@ -132,7 +134,8 @@ void installer::setup_sm() {
 
     }
     if (checkAapaVersion()) {
-      for (tinyxml2::XMLElement *element = serviceconfig->FirstChildElement(); element != nullptr; element = element->NextSiblingElement()) {
+      for (tinyxml2::XMLElement *element = serviceconfig->FirstChildElement(); element != nullptr;
+           element = element->NextSiblingElement()) {
         if (std::string(element->Attribute("name")) == "jciAAPA") {
           LOG(INFO) << "Disabling jciAAPA";
           element->SetAttribute("autorun", false);
@@ -163,7 +166,8 @@ void installer::setup_mmui() {
 
   LOG(DEBUG) << docRoot->GetLineNum();
 
-  for (tinyxml2::XMLElement *element = docRoot->FirstChildElement(); element != nullptr; element = element->NextSiblingElement()) {
+  for (tinyxml2::XMLElement *element = docRoot->FirstChildElement(); element != nullptr;
+       element = element->NextSiblingElement()) {
     if (std::string(element->Attribute("name")) == "androidauto") {
       element->SetAttribute("priority", 30);
       LOG(DEBUG) << "Set androidauto priority to 30";
@@ -204,16 +208,16 @@ void installer::copy_file(const fs::path &from, const fs::path &to) {
   try {
     std::filesystem::copy(from, to);
   }
-  catch (fs::filesystem_error &error){
+  catch (fs::filesystem_error &error) {
     LOG(INFO) << to << " " << error.what() << std::endl;
   }
   installed_files.emplace_back(to);
 }
 
-void installer::install_files(){
-  if(!checkAapaVersion()){
+void installer::install_files() {
+  if (!checkAapaVersion()) {
     for (std::filesystem::recursive_directory_iterator i("jci"), end; i != end; ++i) {
-      if(!is_directory(i->path())){
+      if (!is_directory(i->path())) {
         std::filesystem::path path = "/";
         path += std::filesystem::relative(i->path());
         copy_file(std::filesystem::absolute(i->path()), path);
@@ -222,44 +226,89 @@ void installer::install_files(){
   }
   mkdir("/mnt/data_persist/dev/bin");
   copy_file(fs::path("autoapp"), "/mnt/data_persist/dev/bin/autoapp");
-  if(std::filesystem::exists("autoapp_configuration.toml")){
+  if (std::filesystem::exists("autoapp_configuration.toml")) {
     copy_file("autoapp_configuration.toml", "/mnt/data_persist/dev/bin/autoapp_configuration.toml");
   }
 }
 
-void installer::generate_uninstaller(){
+void installer::generate_uninstaller() {
   fs::path uninstall = "/mnt/data_persist/dev/bin/autoapp.uninstall";
   installed_files.emplace_back(uninstall);
   std::ofstream uninstallScript;
   uninstallScript.open("/mnt/data_persist/dev/bin/autoapp.uninstall");
   uninstallScript << "#!/bin/ash\n";
   uninstallScript << "mount -o remount,rw / \n";
-  for(const auto& file: backup_files){
+  for (const auto &file : backup_files) {
     std::filesystem::path destination = "/";
     destination += std::filesystem::relative(std::filesystem::absolute(file), backup_path);
-    uninstallScript << "mv " << file << " "  << destination << " \n";
+    uninstallScript << "mv " << file << " " << destination << " \n";
   }
   uninstallScript << "rm -rf";
-  for(const auto& file: installed_files){
+  for (const auto &file : installed_files) {
     uninstallScript << " \\\n" << file;
   }
   uninstallScript << "printf \"Uninstalled\\n\"\n";
   uninstallScript.close();
-  fs::permissions(uninstall, fs::perms::owner_exec|fs::perms::group_exec, fs::perm_options::add);
+  fs::permissions(uninstall, fs::perms::owner_exec | fs::perms::group_exec, fs::perm_options::add);
 }
 
-installer::installer(fs::path backup_dir): backup_path(std::move(backup_dir)) {
+installer::installer(fs::path backup_dir) : backup_path(std::move(backup_dir)) {
 
+}
+
+void usage(const char *path) {
+  const char *basename = strrchr(path, '/');
+  basename = basename != nullptr ? basename + 1 : path;
+
+  std::cout << "usage: " << basename << " [OPTION]\n";
+  std::cout << "  -h, --help\t\t" <<"Print this help and exit.\n";
+  std::cout << "  -w, --no-wifi\t\t" << "disable WiFi\n";
 }
 
 int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
-  if(mount("", "/", "", MS_REMOUNT|MS_NOATIME, "") != 0){
+  int opt;
+  int help_flag = 0;
+  bool wifi = true;
+  struct option longopts[] = {
+      {"help", no_argument, &help_flag, 1},
+      {"no-wifi", optional_argument, nullptr, 'w'},
+      {nullptr}
+  };
+
+  if (argc > 1) {
+    while (true) {
+      opt = getopt_long(argc, argv, "hw", longopts, nullptr);
+
+      if (opt == -1) {
+        /* a return value of -1 indicates that there are no more options */
+        break;
+      }
+      switch (opt) {
+        case 'h':
+          help_flag = 1;
+          break;
+        case 'w':
+          wifi = false;
+          break;
+        case '?':
+          return 1;
+        default:
+          break;
+      }
+    }
+  }
+  if (help_flag == 1) {
+    usage(argv[0]);
+    return 0;
+  }
+
+  if (mount("", "/", "", MS_REMOUNT | MS_NOATIME, "") != 0) {
     LOG(ERROR) << "Couldn't remount / rw";
     exit(1);
   }
 
   fs::path uninstaller = "/mnt/data_persist/dev/bin/autoapp.uninstall";
-  if(fs::exists(uninstaller)){
+  if (fs::exists(uninstaller)) {
     LOG(INFO) << "Running uninstaller to cleanup old install";
     system(uninstaller.c_str());
   }
@@ -269,15 +318,23 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
   install.mkdir(path_backup);
   fs::directory_entry dir_backup{path_backup};
 
-  install.install_bds();
+  if (wifi) {
+    install.install_bds();
+  }
+
   install.setup_sm();
-  install.setup_mmui();
+
+  // Set up the right configuration depending on CMU version
   if (!install.checkAapaVersion()) {
     install.configure_opera();
   }
+  else {
+    install.setup_mmui();
+  }
+
   install.install_files();
   install.generate_uninstaller();
-  if(mount("", "/", "", MS_REMOUNT|MS_NOATIME|MS_RDONLY, "") != 0){
+  if (mount("", "/", "", MS_REMOUNT | MS_NOATIME | MS_RDONLY, "") != 0) {
     LOG(ERROR) << "Couldn't remount / ro";
   }
 }
