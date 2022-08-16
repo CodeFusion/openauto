@@ -22,32 +22,32 @@ if [ -f "${MYDIR}/installer_log.txt" ]; then
 fi
 
 log_message() {
-  printf '..%s..' "$*" >>"${MYDIR}/installer_log.txt"
+  printf '%b' "$*" >>"${MYDIR}/installer_log.txt"
   fsync "${MYDIR}/installer_log.txt"
 }
 
 #============================= DIALOG FUNCTIONS
 
 show_message() { # $1 - title, $2 - message
-  killall jci-dialog
+  killall jci-dialog  > /dev/null 2>&1
   log_message "= POPUP INFO: $*\n"
   jci-dialog --info --title="$1" --text="$2" --no-cancel
 }
 
 show_confirmation() { # $1 - title, $2 - message
-  killall jci-dialog
+  killall jci-dialog  > /dev/null 2>&1
   log_message "= POPUP CONFIRM: $*\n"
   jci-dialog --confirm --title="$1" --text="$2" --no-cancel
 }
 
 show_error() { # $1 - title, $2 - message
-  killall jci-dialog
+  killall jci-dialog  > /dev/null 2>&1
   log_message "= POPUP ERROR: $*\n"
   jci-dialog --error --title="$1" --text="$2" --ok-label='OK' --no-cancel
 }
 
 show_question() { # $1 - title, $2 - message, $3 - ok label, $4 - cancel label
-  killall jci-dialog
+  killall jci-dialog > /dev/null 2>&1
   log_message "= POPUP: $*\n"
   jci-dialog --question --title="$1" --text="$2" --ok-label="$3" --cancel-label="$4"
 }
@@ -79,8 +79,14 @@ disable_watchdog_and_remount() {
 }
 
 install_openauto() {
+  wifi=$1
+  log_message "Wifi ${wifi}\n"
+  parameters="--"
+
+  [ "${wifi}" -eq 1 ] && parameters=$parameters" -w"
+  log_message "${parameters}\n"
   log_message "Running Installer... "
-  sh "${MYDIR}"/openauto_installer.run --noexec || {
+  sh -c "${MYDIR}/openauto_installer.run ${parameters}" >> "${MYDIR}/installer_log.txt"|| {
     log_message "Installing OpenAuto Failed"
     return 1
   }
@@ -185,20 +191,12 @@ log_message "Installer started.\n"
 log_message "MYDIR = ${MYDIR}\n"
 log_message "CMU version = ${CMU_SW_VER}\n"
 
-# check software version first
-echo "${CMU_SW_VER}" | sed "/^5[569]\..*/Q 1"
-if [ $? -ne 1 ]; then
-  log_message "Script aborted due to CMU version mismatch."
-  show_message "Aborted" "This version of CMU is not supported. Please update first."
-  exit
-fi
-
 # first test, if copy from MZD to sd card is working to test correct mount point
 log_message "Check mount point ... "
 check_mount_point
 
 # ask if proceed with installation
-if ! show_question "AA INSTALL SCRIPT" "Welcome to OpenAuto installation script. Would you like to proceed?" "Proceed" "Abort"; then
+if ! show_question "AA INSTALL SCRIPT" "Welcome to OpenAuto installation script.\n Would you like to proceed?" "Proceed" "Abort"; then
   log_message "Installation aborted.\n"
   show_message "Aborted" "Script aborted. Please remove the USB drive. There is no need to reboot."
   exit
@@ -220,9 +218,9 @@ installed=0
 remove=0
 # check whether we have AA already installed
 # check for headunit-wrapper to see if headunit was installed
-if [ -f /tmp/mnt/data_persist/dev/bin/headunit-wrapper ]; then
+if [ -f headunit-wrapper ]; then
   log_message "YES\n"
-  show_question "CHOOSE ACTION" "You have headunit already installed. Would you like to remove it" "REMOVE" "CANCEL"
+  show_question "CHOOSE ACTION" "You have headunit already installed.\n Would you like to remove it" "REMOVE" "CANCEL"
   remove=$?
   if [ ${remove} -eq 1 ]; then
     log_message "Canceled.\n"
@@ -236,10 +234,10 @@ else
 fi
 
 log_message "Check whether OpenAuto is installed ... "
-if smctl -g | grep autoapp; then
+if [ -f /tmp/mnt/data_persist/dev/bin/autoapp ]; then
   installed=1
   log_message "YES\n"
-  show_question "CHOOSE ACTION" "You have OpenAuto already installed. Would you like to update or remove it?" "UPDATE" "REMOVE"
+  show_question "CHOOSE ACTION" "You have OpenAuto already installed.\n Would you like to update or remove it?" "UPDATE" "REMOVE"
   remove=$?
   if [ ${remove} -eq 1 ]; then
     log_message "Removing OpenAuto.\n"
@@ -253,13 +251,18 @@ else
   log_message "Installing OpenAuto.\n"
 fi
 
+if [ ${remove} -eq 0 ]; then
+    show_question "WiFi" "Enable WiFi" "Yes" "No"
+    wifi=$?
+fi
+
 if [ ${installed} -eq 0 ]; then
   # this is an installation path - installed=false
-  show_message "INSTALLING" "OpenAuto is installing ..."
+  show_message "INSTALLING" "OpenAuto is installing ..." &
 
-  if install_openauto; then
+  if install_openauto ${wifi}; then
     log_message "Installation complete!\n"
-    show_confirmation "DONE" "OpenAuto has been installed. System will reboot now. Remember to remove USB drive."
+    show_confirmation "DONE" "OpenAuto has been installed. System will reboot now.\n Remember to remove USB drive."
   else
     log_message "Installation Failed!\n"
     show_confirmation "FAILED" "OpenAuto Failed to install"
@@ -271,14 +274,14 @@ elif [ ${remove} -eq 1 ]; then
   remove_openauto
 
   log_message "Uninstall complete!\n"
-  show_confirmation "DONE" "Uninstall complete. System will reboot now. Remember to remove USB drive."
+  show_confirmation "DONE" "Uninstall complete. System will reboot now.\n Remember to remove USB drive."
 else
   # this is an update path - installed=true, remove=false
-  show_message "UPDATING" "Android Auto is updating ..."
+  show_message "UPDATING" "Android Auto is updating ..." &
 
-  if install_openauto; then
+  if install_openauto ${wifi}; then
     log_message "Update complete!\n"
-    show_confirmation "DONE" "OpenAuto has been Updated. System will reboot now. Remember to remove USB drive."
+    show_confirmation "DONE" "OpenAuto has been Updated. System will reboot now.\n Remember to remove USB drive."
   else
     log_message "Updated Failed!\n"
     show_confirmation "FAILED" "OpenAuto Failed to update"
