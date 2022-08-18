@@ -131,7 +131,9 @@ void installer::setup_sm() {
       dependancy = element->InsertNewChildElement("dependency");
       dependancy->SetAttribute("type", "service");
       dependancy->SetAttribute("value", "audio_manager");
-
+      dependancy = element->InsertNewChildElement("dependency");
+      dependancy->SetAttribute("type", "service");
+      dependancy->SetAttribute("value", "start_wifi");
     }
     if (checkAapaVersion()) {
       for (tinyxml2::XMLElement *element = serviceconfig->FirstChildElement(); element != nullptr;
