@@ -59,6 +59,11 @@ void AudioManager::onAudioFocusChange(json result, Stream *stream) {
       promise_.reset();
       timer_.cancel();
     }
+    else{
+      if(stream->channelId == aasdk::messenger::ChannelId::MEDIA_AUDIO) {
+        updateFocus(stream->channelId, AudioFocusState::GAIN);
+      }
+    }
     LOG(DEBUG) << "Stream " << stream->id << ": " << stream->name << " Has Focus " << stream->focus;
   }
 }
