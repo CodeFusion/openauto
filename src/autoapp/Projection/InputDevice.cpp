@@ -181,9 +181,6 @@ void InputDevice::stop() {
   std::lock_guard<decltype(mutex_)> lock(mutex_);
   canceled_ = true;
 
-  audioFocusChanged.disconnect();
-  videoFocusChanged.disconnect();
-
   timer_.cancel();
 
   LOG(INFO) << "[InputDevice] stop.";

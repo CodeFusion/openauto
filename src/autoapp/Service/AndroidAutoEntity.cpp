@@ -56,7 +56,7 @@ void AndroidAutoEntity::start(IAndroidAutoEntityEventHandler &eventHandler) {
     std::for_each(serviceList_.begin(), serviceList_.end(), [](IService::Pointer &service) { service->start(); });
     this->schedulePing();
 
-    device->signals->audioManager->registerFocusCallback([this](aasdk::messenger::ChannelId channelId,
+    device->audioManager->registerFocusCallback([this](aasdk::messenger::ChannelId channelId,
                                                         aasdk::proto::enums::AudioFocusState_Enum focus) {
       this->onAudioFocusResponse(channelId,
                                  focus);
@@ -219,7 +219,7 @@ void AndroidAutoEntity::onAudioFocusRequest(const aasdk::proto::messages::AudioF
       requestState = aasdk::proto::enums::AudioFocusState::GAIN_TRANSIENT;
       break;
     case aasdk::proto::enums::AudioFocusType_Enum_RELEASE:
-      device->signals->audioManager->releaseFocus(aasdk::messenger::ChannelId::NONE);
+      device->audioManager->releaseFocus(aasdk::messenger::ChannelId::NONE);
       break;
   }
   if(request.audio_focus_type() != aasdk::proto::enums::AudioFocusType_Enum_RELEASE) {
@@ -236,7 +236,7 @@ void AndroidAutoEntity::onAudioFocusRequest(const aasdk::proto::messages::AudioF
                                                  aasdk::proto::enums::AudioFocusState::NONE);
                     }
                   });
-    device->signals->audioManager->requestFocus(channelID, request.audio_focus_type(), promise);
+    device->audioManager->requestFocus(channelID, request.audio_focus_type(), promise);
   }
   controlServiceChannel_->receive(this->shared_from_this());
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "server_http.hpp"
+#include "autoapp/Managers/IVideoManager.hpp"
 #include <future>
 #include <thread>
 
@@ -10,7 +11,7 @@
 #include <vector>
 #include <nlohmann/json.hpp>
 
-#include "autoapp/Signals/Signals.hpp"
+
 
 using HttpServer = SimpleWeb::Server<SimpleWeb::HTTP>;
 

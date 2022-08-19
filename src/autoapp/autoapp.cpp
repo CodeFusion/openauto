@@ -170,13 +170,13 @@ int main(int argc, char *argv[]) {
 
   app->waitForUSBDevice();
 
-  device->signals->bluetoothManager->start();
+  device->bluetoothManager->start();
 
   while (running) {
     sleep(1);
   }
 
-  device->signals->bluetoothManager->stop();
+  device->bluetoothManager->stop();
   device->stop();
   sleep(2);
 

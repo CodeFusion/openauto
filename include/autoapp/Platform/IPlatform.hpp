@@ -8,8 +8,6 @@
 #include <autoapp/Managers/IBluetoothManager.hpp>
 #include <autoapp/Managers/INavigationManager.hpp>
 
-#include "autoapp/Signals/Signals.hpp"
-
 class IPlatform {
  public:
   using Pointer = std::shared_ptr<IPlatform>;
@@ -25,8 +23,6 @@ class IPlatform {
 
   IPlatform() = default;
   virtual ~IPlatform() = default;
-
-  Signals::Pointer signals;
 
   /// Called when Android Auto connection starts
   virtual void start() = 0;

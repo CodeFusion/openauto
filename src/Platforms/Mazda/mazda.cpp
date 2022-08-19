@@ -102,8 +102,6 @@ Mazda::Mazda(asio::io_service &ioService, const autoapp::configuration::Configur
   navigationManager = std::make_shared<NavigationManager>(system_connection);
 
   bluetoothManager = std::make_shared<BluetoothManager>(configuration, session_connection, ioService);
-  signals = std::make_shared<Signals>(videoManager, audioManager, gpsManager, nightManager, bluetoothManager, navigationManager);
-
 }
 
 void Mazda::start() {
