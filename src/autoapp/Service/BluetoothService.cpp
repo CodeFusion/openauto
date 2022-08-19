@@ -23,10 +23,10 @@ namespace autoapp::service {
 
 BluetoothService::BluetoothService(asio::io_service &ioService,
                                    aasdk::messenger::IMessenger::Pointer messenger,
-                                   projection::IBluetoothDevice::Pointer bluetoothDevice)
+                                   IBluetoothPairingManager::Pointer BluetoothManager)
     : strand_(ioService),
       channel_(std::make_shared<aasdk::channel::bluetooth::BluetoothServiceChannel>(strand_, std::move(messenger))),
-      bluetoothDevice_(std::move(bluetoothDevice)) {
+      bluetoothManager(std::move(BluetoothManager)) {
 
 }
 
@@ -40,7 +40,7 @@ void BluetoothService::start() {
 void BluetoothService::stop() {
   strand_.dispatch([this, self = this->shared_from_this()]() {
     LOG(INFO) << "[BluetoothService] stop.";
-    bluetoothDevice_->stop();
+//    bluetoothDevice_->stop();
   });
 }
 
@@ -59,16 +59,16 @@ void BluetoothService::resume() {
 void BluetoothService::fillFeatures(aasdk::proto::messages::ServiceDiscoveryResponse &response) {
   LOG(INFO) << "[BluetoothService] fill features";
 
-  if (bluetoothDevice_->isAvailable()) {
-    LOG(INFO) << "[BluetoothService] sending local adapter adress: " << bluetoothDevice_->getLocalAddress();
+//  if (bluetoothDevice_->isAvailable()) {
+    LOG(INFO) << "[BluetoothService] sending local adapter adress: " << bluetoothManager->getMac();
 
     auto *channelDescriptor = response.add_channels();
     channelDescriptor->set_channel_id(static_cast<uint32_t>(channel_->getId()));
     auto *bluetoothChannel = channelDescriptor->mutable_bluetooth_channel();
-    bluetoothChannel->set_adapter_address(bluetoothDevice_->getLocalAddress());
+    bluetoothChannel->set_adapter_address(bluetoothManager->getMac());
     bluetoothChannel->add_supported_pairing_methods(aasdk::proto::enums::BluetoothPairingMethod_Enum_HFP);
     bluetoothChannel->add_supported_pairing_methods(aasdk::proto::enums::BluetoothPairingMethod_Enum_A2DP);
-  }
+//  }
 }
 
 void BluetoothService::onChannelOpenRequest(const aasdk::proto::messages::ChannelOpenRequest &request) {
@@ -89,17 +89,26 @@ void BluetoothService::onChannelOpenRequest(const aasdk::proto::messages::Channe
 void BluetoothService::onBluetoothPairingRequest(const aasdk::proto::messages::BluetoothPairingRequest &request) {
   LOG(INFO) << "[BluetoothService] pairing request, address: " << request.phone_address();
 
-  aasdk::proto::messages::BluetoothPairingResponse response;
 
-  const auto isPaired = bluetoothDevice_->isPaired(request.phone_address());
-  response.set_already_paired(isPaired);
-  response.set_status(isPaired ? aasdk::proto::enums::BluetoothPairingStatus::OK
-                               : aasdk::proto::enums::BluetoothPairingStatus::FAIL);
 
-  auto promise = aasdk::channel::SendPromise::defer(strand_);
-  promise->then([]() {}, [&](const aasdk::error::Error &error) { onChannelError(error); });
-  channel_->sendBluetoothPairingResponse(response, std::move(promise));
+  auto pairingPromise = aasdk::io::Promise<void>::defer(strand_);
+  pairingPromise->then([this](){
+    aasdk::proto::messages::BluetoothPairingResponse response;
+    response.set_already_paired(true);
+    response.set_status(aasdk::proto::enums::BluetoothPairingStatus::OK);
+    auto promise = aasdk::channel::SendPromise::defer(strand_);
+    promise->then([]() {}, [&](const aasdk::error::Error &error) { onChannelError(error); });
+    channel_->sendBluetoothPairingResponse(response, std::move(promise));
+  }, [this](auto error){
+    aasdk::proto::messages::BluetoothPairingResponse response;
+    response.set_already_paired(false);
+    response.set_status(aasdk::proto::enums::BluetoothPairingStatus::FAIL);
+    auto promise = aasdk::channel::SendPromise::defer(strand_);
+    promise->then([]() {}, [&](const aasdk::error::Error &error) { onChannelError(error); });
+    channel_->sendBluetoothPairingResponse(response, std::move(promise));
+  });
 
+  bluetoothManager->pairingRequest(request.phone_address(), pairingPromise);
   channel_->receive(this->shared_from_this());
 }
 

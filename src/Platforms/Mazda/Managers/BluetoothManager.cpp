@@ -153,6 +153,6 @@ void BluetoothManager::retryTimer(const asio::error_code &error) {
     return;
   }
   bcaClient->getcom_jci_bcaInterface()->StartAdd(serviceId);
-  timer.expires_from_now(std::chrono::seconds(10));
+  timer.expires_from_now(std::chrono::seconds(30));
   timer.async_wait([this](const asio::error_code &error) { retryTimer(error); });
 }

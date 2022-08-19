@@ -20,6 +20,7 @@
 
 #include <aasdk/Channel/Bluetooth/BluetoothServiceChannel.hpp>
 #include <autoapp/Projection/IBluetoothDevice.hpp>
+#include <autoapp/Managers/IBluetoothPairingManager.hpp>
 #include <autoapp/Service/IService.hpp>
 
 namespace autoapp::service {
@@ -31,7 +32,7 @@ class BluetoothService
  public:
   BluetoothService(asio::io_service &ioService,
                    aasdk::messenger::IMessenger::Pointer messenger,
-                   projection::IBluetoothDevice::Pointer bluetoothDevice);
+                   IBluetoothPairingManager::Pointer BluetoothManager);
   void start() override;
   void stop() override;
   void pause() override;
@@ -46,7 +47,7 @@ class BluetoothService
 
   asio::io_service::strand strand_;
   aasdk::channel::bluetooth::BluetoothServiceChannel::Pointer channel_;
-  projection::IBluetoothDevice::Pointer bluetoothDevice_;
+  IBluetoothPairingManager::Pointer bluetoothManager;
 };
 
 }

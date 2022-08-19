@@ -20,7 +20,7 @@
 
 #include <autoapp/Service/IServiceFactory.hpp>
 #include <autoapp/Configuration/Configuration.hpp>
-#include <autoapp/Signals/Signals.hpp>
+#include <autoapp/Platform/IPlatform.hpp>
 
 namespace autoapp::service {
 
@@ -28,7 +28,7 @@ class ServiceFactory : public IServiceFactory {
  public:
   ServiceFactory(asio::io_service &ioService,
                  configuration::Configuration::Pointer configuration,
-                  Signals::Pointer signals);
+                  IPlatform::Pointer Platform);
   ServiceList create(aasdk::messenger::IMessenger::Pointer messenger) override;
 
  private:
@@ -39,7 +39,7 @@ class ServiceFactory : public IServiceFactory {
 
   asio::io_service &ioService_;
   configuration::Configuration::Pointer configuration_;
-  Signals::Pointer signals_;
+  IPlatform::Pointer platform;
 };
 
 }

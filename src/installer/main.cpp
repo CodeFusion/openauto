@@ -159,8 +159,6 @@ void installer::setup_mmui() {
   /// Setup the MMUI configuration.
   /// We need to increase the priority of androidauto in MMUI, so that it doesn't loose video focus to phone calls
 
-  backup("/jci/mmui/mmui_config.xml");
-
   tinyxml2::XMLDocument doc;
   doc.LoadFile("/jci/mmui/mmui_config.xml");
 
@@ -170,9 +168,10 @@ void installer::setup_mmui() {
 
   for (tinyxml2::XMLElement *element = docRoot->FirstChildElement(); element != nullptr;
        element = element->NextSiblingElement()) {
-    if (std::string(element->Attribute("name")) == "androidauto") {
-      element->SetAttribute("priority", 30);
-      LOG(DEBUG) << "Set androidauto priority to 30";
+    if (std::string(element->Attribute("name")) == "androidauto" && int(element->Attribute("priority")) != 20) {
+      backup("/jci/mmui/mmui_config.xml");
+      element->SetAttribute("priority", 20);
+      LOG(DEBUG) << "Reset androidauto priority to 20";
       doc.SaveFile("/jci/mmui/mmui_config.xml");
       break;
     }
@@ -330,9 +329,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
   if (!install.checkAapaVersion()) {
     install.configure_opera();
   }
-  else {
-    install.setup_mmui();
-  }
+  install.setup_mmui();
 
   install.install_files();
   install.generate_uninstaller();

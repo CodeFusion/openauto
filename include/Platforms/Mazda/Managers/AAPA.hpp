@@ -5,10 +5,13 @@
 #include <atomic>
 #include <set>
 #include "autoapp/Managers/IVideoManager.hpp"
+#include "autoapp/Managers/IBluetoothPairingManager.hpp"
 #include "autoapp/Service/VideoService.hpp"
 
 #include <com_jci_aapa_objectAdapter.h>
 #include <com_jci_bucpsa_objectProxy.h>
+#include <com_jci_bca_objectProxy.h>
+
 
 class AADBus final : public com_jci_aapa {
  private:
@@ -40,7 +43,13 @@ class AADBus final : public com_jci_aapa {
 
 };
 
-class AAPA : public IVideoManager {
+class AAPVideo {
+ public:
+  void NotifyEnable();
+  int32_t CleanVideo();
+};
+
+class AAPA : public IVideoManager, public IBluetoothPairingManager {
  private:
   std::shared_ptr<DBus::Connection> dbusConnection;
   sigc::connection ConnectedConnection;
@@ -48,11 +57,18 @@ class AAPA : public IVideoManager {
   std::shared_ptr<com_jci_aapa_objectAdapter> session_object;
   std::shared_ptr<com_jci_aapaInterface> adapter;
   AADBus *androiddbus;
-  std::shared_ptr<com_jci_bucpsa_objectProxy> bucpsa;
+//  std::shared_ptr<com_jci_bucpsa_objectProxy> bucpsa;
+  std::shared_ptr<DBus::Object> aapVideoObject;
+  AAPVideo *aapVideo;
+  std::string btMac;
 
-  void DisplayMode(uint32_t DisplayMode);
+//  void DisplayMode(uint32_t DisplayMode);
+  int32_t StopVideo();
+  void SetVehicleBtMacAddress(std::string macaddr, uint32_t maclen);
+
 
  public:
+  using Pointer = std::shared_ptr<AAPA>;
   explicit AAPA(std::shared_ptr<DBus::Connection> session_connection);
   ~AAPA() override = default;
 
@@ -61,4 +77,9 @@ class AAPA : public IVideoManager {
 
   void requestFocus() override;
   void releaseFocus() override;
+
+  void pairingRequest(std::string mac, aasdk::io::Promise<void>::Pointer promise) override;
+  std::string getMac() override;
+
+
 };

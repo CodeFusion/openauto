@@ -44,7 +44,9 @@ Mazda::Mazda(asio::io_service &ioService, const autoapp::configuration::Configur
   // Setup things that differ between CMU versions that have built in Android Auto, and earlier versions that do not.
   if (checkAapaVersion()) {
     LOG(DEBUG) << "Using Mazda Android Auto Video";
-    videoManager = std::make_shared<AAPA>(session_connection);
+    AAPA::Pointer aapa = std::make_shared<AAPA>(session_connection);
+    videoManager = aapa;
+    bluetoothPairingManager = aapa;
     LOG(DEBUG) << "Using Mazda AA Audio";
     autoapp::configuration::AudioChannel mediaChannel;
     mediaChannel.channels = 2;
@@ -60,6 +62,7 @@ Mazda::Mazda(asio::io_service &ioService, const autoapp::configuration::Configur
   } else {
     LOG(DEBUG) << "Using internal Video handling";
     videoManager = std::make_shared<VideoManager>(session_connection);
+    bluetoothPairingManager = std::make_shared<BluetoothPairingManager>();
     autoapp::configuration::AudioChannel mediaChannel;
     mediaChannel.channels = 2;
     mediaChannel.rate = 48000;

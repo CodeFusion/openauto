@@ -13,6 +13,7 @@
 #include "autoapp/Configuration/Configuration.hpp"
 #include "Platforms/Mazda/Managers/NightManager.hpp"
 #include "Platforms/Mazda/Managers/NavigationManager.hpp"
+#include "Platforms/Mazda/Managers/BluetoothPairingManager.hpp"
 
 
 #include <cstdlib>
@@ -31,13 +32,14 @@ class Mazda: public IPlatform{
   std::shared_ptr<DBus::Connection> session_connection;
   std::shared_ptr<DBus::Connection> system_connection;
 
-  IVideoManager::Pointer videoManager;
-
-  IGPSManager::Pointer gpsManager;
-  INightManager::Pointer nightManager;
-  IAudioManager::Pointer audioManager;
+//  IVideoManager::Pointer videoManager;
+//  IBluetoothPairingManager::Pointer bluetoothPairingManager;
+//
+//  IGPSManager::Pointer gpsManager;
+//  INightManager::Pointer nightManager;
+//  IAudioManager::Pointer audioManager;
   BluetoothManager::Pointer bluetoothManager;
-  INavigationManager::Pointer navigationManager;
+//  INavigationManager::Pointer navigationManager;
   HttpManager *httpManager;
 
  private:

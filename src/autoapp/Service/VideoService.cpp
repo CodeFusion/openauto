@@ -89,8 +89,6 @@ void VideoService::onAVChannelSetupRequest(const aasdk::proto::messages::AVChann
                            : aasdk::proto::enums::AVChannelSetupStatus::FAIL;
   LOG(INFO) << "[VideoService] setup status: " << status;
 
-  videoManager->requestFocus();
-
   aasdk::proto::messages::AVChannelSetupResponse response;
   response.set_media_status(status);
   response.set_max_unacked(10);
@@ -98,7 +96,7 @@ void VideoService::onAVChannelSetupRequest(const aasdk::proto::messages::AVChann
 
   auto promise = aasdk::channel::SendPromise::defer(strand_);
   promise->then([this, self =
-                this->shared_from_this()]() -> void { this->sendVideoFocusIndication(); },
+                this->shared_from_this()]() -> void { this->videoManager->requestFocus();; },
                 [this, self =
                 this->shared_from_this()](const aasdk::error::Error &error) -> void { this->onChannelError(error); });
   channel_->sendAVChannelSetupResponse(response, std::move(promise));
@@ -187,7 +185,7 @@ void VideoService::onVideoFocusRequest(const aasdk::proto::messages::VideoFocusR
 }
 
 void VideoService::sendVideoFocusIndication() {
-  LOG(INFO) << "[VideoService] video focus indication.";
+  LOG(DEBUG) << "[VideoService] video focus gained.";
 
   aasdk::proto::messages::VideoFocusIndication videoFocusIndication;
   videoFocusIndication.set_focus_mode(aasdk::proto::enums::VideoFocusMode::FOCUSED);
@@ -201,7 +199,7 @@ void VideoService::sendVideoFocusIndication() {
 }
 
 void VideoService::sendVideoFocusLost() {
-  LOG(INFO) << "[VideoService] video focus indication.";
+  LOG(DEBUG) << "[VideoService] video focus loss.";
   videoOutput_->stop();
 
   aasdk::proto::messages::VideoFocusIndication videoFocusIndication;
