@@ -101,7 +101,8 @@ Mazda::Mazda(asio::io_service &ioService, const autoapp::configuration::Configur
 
   navigationManager = std::make_shared<NavigationManager>(system_connection);
 
-  bluetoothManager = std::make_shared<BluetoothManager>(configuration, session_connection, ioService);
+  internalBluetoothManager = std::make_shared<BluetoothManager>(configuration, session_connection, ioService);
+  bluetoothManager = internalBluetoothManager;
 }
 
 void Mazda::start() {
@@ -109,7 +110,7 @@ void Mazda::start() {
   audioManager->start();
   navigationManager->start();
   httpManager->handle_aa_connect(true);
-  bluetoothManager->aaConnect(true);
+  internalBluetoothManager->aaConnect(true);
 }
 
 void Mazda::stop() {
@@ -117,7 +118,7 @@ void Mazda::stop() {
   videoManager->stop();
   audioManager->stop();
   httpManager->handle_aa_connect(false);
-  bluetoothManager->aaConnect(false);
+  internalBluetoothManager->aaConnect(false);
 }
 
 std::string Mazda::hostapd_config(const std::string &key) {

@@ -58,7 +58,7 @@ class BluetoothManager : public IBluetoothManager {
 
 class MazdaBluetoothConnection: public BluetoothConnection{
  public:
-  MazdaBluetoothConnection(autoapp::configuration::WifiConfiguration::pointer WifiConfig);
+  explicit MazdaBluetoothConnection(autoapp::configuration::WifiConfiguration::pointer WifiConfig);
   void handle_connect(const std::string &pty);
 
  protected:
