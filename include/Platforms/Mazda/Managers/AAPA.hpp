@@ -81,5 +81,21 @@ class AAPA : public IVideoManager, public IBluetoothPairingManager {
   void pairingRequest(std::string mac, aasdk::io::Promise<void>::Pointer promise) override;
   std::string getMac() override;
 
+  /// Values sent from MMUI_ANDROIDAUTO to our app
+  enum VideoProjectionEventTo{
+    VideoProjectionEventTo_START = 0, ///< Sent when we should start our video, tell Android Auto we have gained focus
+    VideoProjectionEventTo_STOP = 1, ///< Sent when we should stop video, and tell Android Auto we have lost focus
+    VideoProjectionEventTo_RESUME = 4 ///< Sent when we should restart video after backup camera
+  };
+
+  /// Values sent by our app to MMUI_ANDROIDAUTO
+  enum VideoProjectionEventFrom{
+    VideoProjectionEventFrom_START = 0,
+    VideoProjectionEventFrom_STOP = 1,
+    VideoProjectionEventFrom_RESUME = 5,
+    VideoProjectionEventFrom_START_WITH_AUDIO = 6
+  };
+
+
 
 };

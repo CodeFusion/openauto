@@ -8,20 +8,24 @@ AADBus::AADBus(std::function<void(bool)> FocusChanged) : focusChanged(std::move(
 }
 
 uint8_t AADBus::GetAvailable() {
+  // TODO: Actually reflect real session status
   LOG(DEBUG) << "";
   return 2;
 }
 
+
+/// Handle call from MMUI_ANDROIDAUTO to let us know if we should display or not.
+/// \param videoProjectionEvent between 0 and 4
 void AADBus::VideoProjectionEventToMD(uint32_t videoProjectionEvent) {
   LOG(DEBUG) << "VideoProjectionEventToMD " << videoProjectionEvent;
   switch (videoProjectionEvent) {
-    case 0:
+    case AAPA::VideoProjectionEventTo::VideoProjectionEventTo_START:
       focusChanged(true);
       break;
-    case 1:
+    case AAPA::VideoProjectionEventTo::VideoProjectionEventTo_STOP:
       focusChanged(false);
       break;
-    case 4:
+    case AAPA::VideoProjectionEventTo::VideoProjectionEventTo_RESUME:
       focusChanged(true);
       break;
     default:
@@ -53,6 +57,10 @@ int32_t AADBus::SetMP911EmergencyCallStatus(uint32_t status) {
 void AADBus::SbnStatus(bool status) {
   LOG(DEBUG) << "SbnStatus " << status;
 }
+
+/// Handle recieving vehicles BlueTooth Address from Mazda Systems
+/// \param macaddr
+/// \param maclen
 void AAPA::SetVehicleBtMacAddress(std::string macaddr, uint32_t maclen) {
   LOG(DEBUG) << macaddr;
   btMac.assign(macaddr);
@@ -61,29 +69,14 @@ void AAPA::SetVehicleBtMacAddress(std::string macaddr, uint32_t maclen) {
 AAPA::AAPA(std::shared_ptr<DBus::Connection> session_connection) : dbusConnection(std::move(session_connection)){
 }
 
-//void AAPA::DisplayMode(uint32_t DisplayMode) {
-////   currentDisplayMode != 0 means backup camera wants the screen
-////  if ((bool) DisplayMode) {
-////    focusChanged(false);
-////  }
-//}
-
-// Projection on = 0
-// Projection off = 1
-// Projection Resume = 5
-// Projection on with Audio = 6
-
 void AAPA::requestFocus() {
   LOG(DEBUG) << "requestFocus";
-  adapter->signal_VideoProjectionRequestFromMD()->emit(0);
-//  adapter->signal_ProjectionStatusResult()->emit(true);
-//  focusChanged(true);
+  adapter->signal_VideoProjectionRequestFromMD()->emit(AAPA::VideoProjectionEventFrom::VideoProjectionEventFrom_START);
 }
 
 void AAPA::releaseFocus() {
   LOG(DEBUG) << "releaseFocus";
-  adapter->signal_VideoProjectionRequestFromMD()->emit(1);
-//  focusChanged(false);
+  adapter->signal_VideoProjectionRequestFromMD()->emit(AAPA::VideoProjectionEventFrom::VideoProjectionEventFrom_STOP);
 }
 
 void AAPA::start() {
@@ -97,22 +90,23 @@ void AAPA::start() {
   aapVideoObject->create_method<int32_t(void)>("StopVideo", sigc::mem_fun(*this, &AAPA::StopVideo) );
   aapVideoObject->create_method<int32_t(void)>("CleanVideo", sigc::mem_fun(*aapVideo, &AAPVideo::CleanVideo) );
 
-
+  //Initiate the class for most of our DBUS methods used by MMUI_ANDROIDAUTO
   androiddbus = new AADBus([this](bool focus) { this->focusChanged(focus); });
-
   adapter = com_jci_aapaInterface::create(androiddbus);
+
+  // TODO: Probably a better way of handling this
   adapter->remove_method("SetVehicleBtMacAddress");
   adapter->create_method<void(std::string macaddr, uint32_t maclen)>("SetVehicleBtMacAddress", sigc::mem_fun(*this, &AAPA::SetVehicleBtMacAddress));
 
   session_object = com_jci_aapa_objectAdapter::create(dbusConnection, adapter, "/com/jci/aapa");
 
+  // Emit that Android Auto is availible to rest of CMU Software
   adapter->signal_Available()->emit(2);
+  // Emit that we have an established Androud Auto session
   adapter->signal_AOASessionStatus()->emit(true);
 
-//  bucpsa = com_jci_bucpsa_objectProxy::create(dbusConnection, "com.jci.bucpsa", "/com/jci/bucpsa");
-//  displayModeConnection =
-//      bucpsa->getcom_jci_bucpsaInterface()->signal_DisplayMode()->connect(sigc::mem_fun(*this, &AAPA::DisplayMode));
-
+  // Handle sending our Projection status to MMUI_ANDROIDAUTO after we start video
+  // TODO: Probably a neater way to handle this too.
   registerFocus([this](bool state){
     if(state) {
       LOG(DEBUG) << "adapter->signal_ProjectionStatusResult()->emit(true);";
@@ -123,6 +117,7 @@ void AAPA::start() {
       adapter->signal_ProjectionStatusResult()->emit(false);
     }
   });
+  // Reqeust that something send us what the CMU Bluetooth Address is. Is then recieved by AAPA::SetVehicleBtMacAddress
   adapter->signal_GetVehicleBtMacAddress()->emit();
 }
 
@@ -133,30 +128,37 @@ void AAPA::stop() {
   adapter->signal_Available()->emit(0);
   sleep(1);
   displayModeConnection.disconnect();
-//  bucpsa.reset();
   session_object.reset();
   adapter.reset();
   delete androiddbus;
   dbusConnection->release_name("com.jci.aapa");
 }
 
+/// Called by MMUI_ANDROIDAUTO when video can start again. Redundant by AADBus::VideoProjectionEventToMD
 void AAPVideo::NotifyEnable() {
   LOG(DEBUG) << "NotifyEnable";
 }
 
+/// Called by MMUI_ANDROIDAUTO when video needs to stop. Possibly redundant by AADBus::VideoProjectionEventToMD
 int32_t AAPA::StopVideo() {
   LOG(DEBUG) << "StopVideo";
   focusChanged(false);
   return 0;
 }
 
+/// Handle pairing request
+/// \param mac
+/// \param promise
 void AAPA::pairingRequest(std::string mac, aasdk::io::Promise<void>::Pointer promise) {
+  // TODO: Actually handle pairing requests if the phone isn't connected via bluetooth already
+  // This notifies the bluetooth/MMUI_PHONE systems that Android Auto is handling calls.
   adapter->signal_StartBtConnection()->emit();
   adapter->signal_BTPairingRequest()->emit(mac, mac.size(), true);
   adapter->signal_NotifyDeviceConnection()->emit(true);
   adapter->signal_NotifyBTConnectionComplete()->emit(true);
   promise->resolve();
 }
+
 std::string AAPA::getMac() {
   return btMac;
 }
