@@ -33,6 +33,7 @@
 #include <Platforms/RPI/RPI.hpp>
 #include <iomanip>
 #include "autoapp/Platform/IPlatform.hpp"
+#include "version.h"
 
 using ThreadPool = std::vector<std::thread>;
 
@@ -123,7 +124,7 @@ int main(int argc, char *argv[]) {
   el::Loggers::reconfigureLogger("default", defaultConf);
   el::Loggers::setLoggingLevel(el::Level::Debug);
 
-  LOG(INFO) << "[OpenAuto] starting";
+  LOG(INFO) << "[OpenAuto] starting version " << OPENAUTO_VERSION;
   signal(SIGINT, signalHandler);
   signal(SIGTERM, signalHandler);
   signal(SIGPIPE, SIG_IGN);

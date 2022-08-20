@@ -139,12 +139,14 @@ void AudioManager::populateData() {
       {"pretty", false}
   };
   std::string resultString = AudioProxy->Request("dumpState", requestArgs.dump());
-  LOG(DEBUG) << "dumpState(" << requestArgs.dump().c_str() << ")\n" << resultString.c_str() << "\n";
   try {
     auto result = json::parse(resultString);
     for (json::iterator it = result["Cabin"]["reqMatrixIdx"].begin(); it != result["Cabin"]["reqMatrixIdx"].end();
          ++it) {
       MazdaDestinations.emplace_back(it.key());
+    }
+    for(const auto& streamtype: MazdaDestinations){
+      LOG(DEBUG) << "StreamType: " << streamtype;
     }
   }
   catch (const std::domain_error &ex) {

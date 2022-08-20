@@ -14,14 +14,11 @@
 
 #include <easylogging++.h>
 
-bool checkAapaVersion() {
+Mazda::Mazda(asio::io_service &ioService, const autoapp::configuration::Configuration::Pointer& configuration) {
   mINI::INIFile file("/jci/version.ini");
   mINI::INIStructure ini;
   file.read(ini);
-  return ini["VersionInfo"].has("JCI_BLM_AAPA-IHU");
-}
-
-Mazda::Mazda(asio::io_service &ioService, const autoapp::configuration::Configuration::Pointer& configuration) {
+  LOG(INFO) << "Firmware " << ini["VersionInfo"].get("JCI_SW_VER");
   /* Do some Mazda Specific Setup */
   setenv("DBUS_SYSTEM_BUS_ADDRESS", "unix:path=/tmp/dbus_service_socket", 1);
   setenv("DBUS_SESSION_BUS_ADDRESS", "unix:path=/tmp/dbus_hmi_socket", 1);
@@ -42,7 +39,7 @@ Mazda::Mazda(asio::io_service &ioService, const autoapp::configuration::Configur
 
   autoapp::configuration::AudioConfiguration audioConfig;
   // Setup things that differ between CMU versions that have built in Android Auto, and earlier versions that do not.
-  if (checkAapaVersion()) {
+  if (ini["VersionInfo"].has("JCI_BLM_AAPA-IHU")) {
     LOG(DEBUG) << "Using Mazda Android Auto Video";
     AAPA::Pointer aapa = std::make_shared<AAPA>(session_connection);
     videoManager = aapa;
