@@ -1,13 +1,18 @@
 #include "Platforms/Mazda/Managers/NavigationManager.hpp"
 #include "easylogging++.h"
 
-NavigationManager::NavigationManager(std::shared_ptr<DBus::Connection> systemconnection) : dbusConnection(
-    std::move(systemconnection)) {
+NavigationManager::NavigationManager(std::shared_ptr<DBus::Connection> systemconnection, std::shared_ptr<DBus::Connection> hmiConnection) : dbusConnection(
+    std::move(systemconnection)), hmiDbusConnection(std::move(hmiConnection)) {
 
 }
 
 void NavigationManager::start() {
   try {
+    GuidanceChange = dbusConnection->create_free_signal<tGuidanceChangedforHUD>("/com/NNG/Api/Server",
+                                                                   "com.NNG.Api.Server.Guidance",
+                                                                   "GuidanceChangedForHUD");
+
+    NaviStatus = hmiDbusConnection->create_free_signal<void(int)>("/com/jci/aapa", "com.jci.aapa", "NotifyAANaviStatus");
 
     std::shared_ptr<com_jci_vbs_navi_tmc_objectProxy>
         tmcProxy = com_jci_vbs_navi_tmc_objectProxy::create(dbusConnection, "com.jci.vbs.navi", "/com/jci/vbs/navi");
@@ -20,7 +25,6 @@ void NavigationManager::start() {
     int HUDStatus = naviClient_->GetHUDStatus();
     LOG(DEBUG) << "GetHUDStatus " << HUDStatus;
 
-    if (HUDStatus == 1) {
 
 
       AA2MAZ.insert(std::pair(aasdk::proto::enums::NavigationTurnEvent::DEPART,
@@ -62,6 +66,7 @@ void NavigationManager::start() {
       AA2MAZ.insert(std::pair(aasdk::proto::enums::NavigationTurnEvent::DESTINATION,
                               TurnIcon{MazdaIcons::DESTINATION_LEFT, MazdaIcons::DESTINATION_RIGHT,
                                        MazdaIcons::DESTINATION})); //TURN_DESTINATION
+    if (HUDStatus == 1) {
       LOG(INFO) << "HUD Initialized";
     } else {
       LOG(INFO) << "HUD NOT DETECTED";
@@ -96,23 +101,12 @@ void NavigationManager::NavigationTurn(int turn_number,
                                        aasdk::proto::enums::NavigationTurnSide_Enum turn_side,
                                        aasdk::proto::enums::NavigationTurnEvent_Enum turn_event,
                                        int turn_angle) {
-  if (naviClient_ && tmcClient_) {
-    if (turn_number != navi_data.turn_number || turn_name != navi_data.turn_name) {
-      navi_data.turn_number = turn_number;
-      navi_data.turn_name = turn_name;
-      navi_data.msg++;
-      if (navi_data.msg >= 8) {
-        navi_data.msg = 1;
-      }
-    }
-    navi_data.turn_side = turn_side;
-    navi_data.turn_event = turn_event;
-    navi_data.turn_angle = turn_angle;
+  navi_data.turn_side = turn_side;
+  navi_data.turn_event = turn_event;
+  navi_data.turn_angle = turn_angle;
+  navi_data.turn_name = turn_name;
 
-    LOG(DEBUG) << "msg" << navi_data.msg << " " << turn_name;
-
-    tmcClient_->SetHUD_Display_Msg2(guidancePointData(turn_name, navi_data.msg));
-  }
+  LOG(DEBUG) << "msg" << navi_data.msg << " " << turn_name;
 }
 
 void NavigationManager::NavigationDistance([[maybe_unused]] int distance,
@@ -121,8 +115,8 @@ void NavigationManager::NavigationDistance([[maybe_unused]] int distance,
                                            aasdk::proto::enums::NavigationDistanceUnit_Enum distanceUnit) {
   if (naviClient_ && tmcClient_) {
     uint32_t diricon = 0;
-    uint16_t nowDistance;
-    MazdaDistanceUnits nowUnit;
+    uint16_t nowDistance = 0;
+    MazdaDistanceUnits nowUnit = MazdaDistanceUnits::No_Display;
     if (navi_data.turn_event == aasdk::proto::enums::NavigationTurnEvent::ROUNDABOUT_ENTER_AND_EXIT) {
       LOG(DEBUG) << "Roundabout";
       diricon = roundabout(navi_data.turn_angle, navi_data.turn_side);
@@ -135,51 +129,47 @@ void NavigationManager::NavigationDistance([[maybe_unused]] int distance,
     }
 
     switch (distanceUnit) {
-      case aasdk::proto::enums::NavigationDistanceUnit::METERS:nowDistance = displayDistance / 100;
+      case aasdk::proto::enums::NavigationDistanceUnit::METERS:
+        nowDistance = displayDistance / 100;
         nowUnit = MazdaDistanceUnits::METERS;
         break;
       case aasdk::proto::enums::NavigationDistanceUnit::KILOMETERS10:
-      case aasdk::proto::enums::NavigationDistanceUnit::KILOMETERS:nowDistance = displayDistance / 100;
+      case aasdk::proto::enums::NavigationDistanceUnit::KILOMETERS:
+        nowDistance = displayDistance / 100;
         nowUnit = MazdaDistanceUnits::KILOMETERS;
         break;
       case aasdk::proto::enums::NavigationDistanceUnit::MILES10:
-      case aasdk::proto::enums::NavigationDistanceUnit::MILES:nowDistance = displayDistance / 100;
+      case aasdk::proto::enums::NavigationDistanceUnit::MILES:
+        nowDistance = displayDistance / 100;
         nowUnit = MazdaDistanceUnits::MILES;
         break;
-      case aasdk::proto::enums::NavigationDistanceUnit::FEET:nowDistance = displayDistance / 100;
+      case aasdk::proto::enums::NavigationDistanceUnit::FEET:
+        nowDistance = displayDistance / 100;
         nowUnit = MazdaDistanceUnits::FEET;
         break;
-      case aasdk::proto::enums::NavigationDistanceUnit::YARDS:nowDistance = displayDistance / 100;
+      case aasdk::proto::enums::NavigationDistanceUnit::YARDS:
+        nowDistance = displayDistance / 100;
         nowUnit = MazdaDistanceUnits::YARDS;
         break;
-      default:break;
+      default:
+        break;
     }
 
     LOG(DEBUG) << "msg" << navi_data.msg << " " << static_cast<int>(diricon) << " " << nowDistance << " " << nowUnit;
 
-    naviClient_->SetHUDDisplayMsgReq(hudDisplayMsg(diricon,
-                                                   nowDistance,
-                                                   nowUnit,
-                                                   0,
-                                                   0,
-                                                   navi_data.msg));
-
+    GuidanceChange->emit((int) diricon, nowDistance, nowUnit, navi_data.turn_name, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0);
   }
 }
 
 void NavigationManager::NavigationStart() {
   if (naviClient_ && tmcClient_) {
     LOG(DEBUG) << "Navigation Started";
-    system("smctl -s -n NNG");
-    system("smctl -s -n jcinavi");
+    NaviStatus->emit(3);
   }
 }
 void NavigationManager::NavigationStop() {
   if (tmcClient_ && naviClient_) {
-    tmcClient_->SetHUD_Display_Msg2(guidancePointData("", 0));
-    naviClient_->SetHUDDisplayMsgReq(hudDisplayMsg(0, 0, 0, 0, 0, 0));
+    NaviStatus->emit(0);
+    LOG(DEBUG) << "Navigation Stopped";
   }
-
-  LOG(DEBUG) << "Navigation Stopped";
-  system("smctl -l -n jcinavi &");
 }

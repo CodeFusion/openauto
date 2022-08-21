@@ -96,7 +96,7 @@ Mazda::Mazda(asio::io_service &ioService, const autoapp::configuration::Configur
 
   httpManager = new HttpManager(videoManager);
 
-  navigationManager = std::make_shared<NavigationManager>(system_connection);
+  navigationManager = std::make_shared<NavigationManager>(system_connection, session_connection);
 
   internalBluetoothManager = std::make_shared<BluetoothManager>(configuration, session_connection, ioService);
   bluetoothManager = internalBluetoothManager;

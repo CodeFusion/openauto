@@ -46,6 +46,7 @@ enum MazdaIcons {
 };
 
 enum MazdaDistanceUnits : uint8_t {
+  No_Display = 0,
   METERS = 1,
   MILES = 2,
   KILOMETERS = 3,
@@ -53,9 +54,11 @@ enum MazdaDistanceUnits : uint8_t {
   FEET = 5
 };
 
+
+
 class NavigationManager: public INavigationManager {
  public:
-  explicit NavigationManager(std::shared_ptr<DBus::Connection> session_connection);
+  explicit NavigationManager(std::shared_ptr<DBus::Connection> system_connection, std::shared_ptr<DBus::Connection> hmi_connection);
   ~NavigationManager() override = default;
   void start() override;
   void stop() override;
@@ -77,6 +80,7 @@ class NavigationManager: public INavigationManager {
 
 //  HUDSettingsCLient *hudSettings_;
   std::shared_ptr<DBus::Connection> dbusConnection;
+  std::shared_ptr<DBus::Connection> hmiDbusConnection;
   std::shared_ptr<com_jci_vbs_navi_tmcProxy> tmcClient_;
   std::shared_ptr<com_jci_vbs_naviProxy> naviClient_;
   NaviData navi_data{};
@@ -84,7 +88,12 @@ class NavigationManager: public INavigationManager {
   using TurnIcon = std::array<MazdaIcons, 3>;
   using hudDisplayMsg = std::tuple<uint32_t, uint16_t, uint8_t, uint16_t, uint8_t, uint8_t>;
   using guidancePointData = std::tuple<std::string, uint8_t>;
+  using tGuidanceChangedforHUD = void(int, int, int, std::string, int, int, int, int, int, int, int, int, int, int);
+
 
   std::map<aasdk::proto::enums::NavigationTurnEvent_Enum, TurnIcon> AA2MAZ;
+  std::shared_ptr< DBus::Signal<tGuidanceChangedforHUD>> GuidanceChange;
+  std::shared_ptr<DBus::Signal<void(int)>> NaviStatus;
+
 
 };
