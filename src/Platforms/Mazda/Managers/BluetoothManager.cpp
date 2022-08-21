@@ -122,13 +122,13 @@ int BluetoothManager::update_connection_info() {
 
   ioctl(fileDescriptor, SIOCGIFHWADDR, &ifr);
   std::ostringstream macString;
-  macString << std::setfill('0') << std::setw(2) << std::hex << std::uppercase;
+  macString << std::setfill('0') << std::hex << std::uppercase;
   const int macLength = 5;
   for (int position = 0; position <= macLength; position++) {
     if(!macString.str().empty()){
       macString << ":";
     }
-    macString << static_cast<int>(ifr.ifr_hwaddr.sa_data[position]);
+    macString << std::setw(2) << static_cast<int>(ifr.ifr_hwaddr.sa_data[position]);
   }
   wifiConfig->bssid.assign(macString.str());
   ioctl(fileDescriptor, SIOCGIFADDR, &ifr);
