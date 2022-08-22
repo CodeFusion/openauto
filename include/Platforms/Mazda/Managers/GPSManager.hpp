@@ -20,6 +20,7 @@ class GPSManager: public IGPSManager{
 
 
  private:
+  using gpsData = std::tuple<int32_t, uint64_t, double, double, int32_t, double, double, double, double>;
   asio::basic_waitable_timer<std::chrono::steady_clock> timer;
   std::shared_ptr<com_jci_lds_data_objectProxy> gpsclient;
   std::shared_ptr<com_jci_lds_control_objectProxy> gpscontrol;

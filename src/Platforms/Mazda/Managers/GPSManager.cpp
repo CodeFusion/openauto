@@ -9,9 +9,7 @@ void GPSManager::update_position(const asio::error_code &error) {
 
   aasdk::proto::data::GPSLocation loc;
   try {
-    std::tuple<int32_t, uint64_t, double, double, int32_t, double, double, double, double>
-        data = gpsclient->getcom_jci_lds_dataInterface()->GetPosition();
-
+    gpsData data = gpsclient->getcom_jci_lds_dataInterface()->GetPosition().m_data;
     //timestamp 0 means "invalid" and positionAccuracy 0 means "no lock"
     if (std::get<1>(data) == 0 || std::get<0>(data) == 0) {
       std::time_t now = time(nullptr);

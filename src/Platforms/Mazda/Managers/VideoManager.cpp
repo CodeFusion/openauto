@@ -55,7 +55,7 @@ void VideoManager::start() {
   displayModeConnection = bucpsa->getcom_jci_bucpsaInterface()->signal_DisplayMode()->connect(sigc::mem_fun(*this,
                                                                                                             &VideoManager::DisplayMode));
 
-  std::tuple<unsigned int, int> display_mode = bucpsa->getcom_jci_bucpsaInterface()->GetDisplayMode();
+  std::tuple<unsigned int, int> display_mode = bucpsa->getcom_jci_bucpsaInterface()->GetDisplayMode().m_data;
 
   currentDisplayMode = (bool) std::get<0>(display_mode);
 }
