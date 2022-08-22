@@ -40,7 +40,6 @@ void AudioManager::onAudioFocusChange(json result, Stream *stream) {
     updateFocus(stream->channelId, AudioFocusState::LOSS);
     if(promise_ != nullptr){
       promise_.reset();
-      timer_.cancel();
     }
     LOG(DEBUG) << "Stream " << stream->id << ": " << stream->name << " Focus Lost";
   } else if (focus == "temporarilyLost") {
@@ -57,7 +56,6 @@ void AudioManager::onAudioFocusChange(json result, Stream *stream) {
     if(promise_ != nullptr){
       promise_->resolve();
       promise_.reset();
-      timer_.cancel();
     }
     else{
       if(stream->channelId == aasdk::messenger::ChannelId::MEDIA_AUDIO) {
@@ -184,8 +182,6 @@ void AudioManager::requestFocus(aasdk::messenger::ChannelId channelId,
         LOG(DEBUG) << args;
         try {
           promise_ = std::move(promise);
-          timer_.expires_from_now(std::chrono::seconds(1));
-          timer_.async_wait(strand_.wrap([this](const asio::error_code &error) { onTimerExceeded(error); }));
           std::string result = AudioProxy->Request("requestAudioFocus", args.dump());
           LOG(DEBUG) << "requestAudioFocus(" << args.dump().c_str() << ")\n" << result.c_str();
         }
