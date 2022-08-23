@@ -27,27 +27,6 @@
 
 namespace autoapp::service {
 
-class AudioTimer {
- public:
-  using Promise = aasdk::io::Promise<void>;
-
-  explicit AudioTimer(asio::io_service &ioService);
-  void request(Promise::Pointer promise);
-  void cancel();
-  void extend();
-
- private:
-
-  void onTimerExceeded(const asio::error_code &error);
-
-  asio::io_service::strand strand_;
-  asio::basic_waitable_timer<std::chrono::steady_clock> timer_;
-  Promise::Pointer promise_;
-  const int delay_ = 1500;
-  std::mutex timerMutex;
-
-};
-
 class AudioService
     : public aasdk::channel::av::IAudioServiceChannelEventHandler,
       public IService,
@@ -87,7 +66,6 @@ class AudioService
   std::vector<projection::IAudioOutput::Pointer> audioOutput_;
   int32_t session_;
   IAudioManager::Pointer audioManager;
-  AudioTimer timer_;
 };
 
 }

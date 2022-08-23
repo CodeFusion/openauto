@@ -10,9 +10,11 @@
 
 #include <thread>
 #include <mutex>
+#include <deque>
 
 using json = nlohmann::json;
 using AudioFocusState = aasdk::proto::enums::AudioFocusState;
+using AudioFocusType = aasdk::proto::enums::AudioFocusType_Enum;
 
 struct Stream {
   std::string name;
@@ -25,6 +27,14 @@ struct Stream {
 
 class AudioManager: public IAudioManager {
  private:
+  struct workItem {
+    aasdk::messenger::ChannelId channelId;
+    std::string focus;
+  };
+  std::deque<workItem> workQueue;
+  std::mutex queueLock;
+  void doWork();
+
   std::vector<std::string> MazdaDestinations;
   std::map<aasdk::messenger::ChannelId, Stream *> streams;
 //  std::map<std::string, int> ExistingStreams;
@@ -44,7 +54,6 @@ class AudioManager: public IAudioManager {
 
   asio::io_service::strand strand_;
   asio::basic_waitable_timer<std::chrono::steady_clock> timer_;
-  aasdk::io::Promise<void>::Pointer promise_;
 
 
   void RegisterStream(std::string StreamName,
@@ -58,7 +67,6 @@ class AudioManager: public IAudioManager {
 //  void populateStreamTable();
 
   std::string RequestHandler(const std::string &methodName, const std::string &arguments);
-  void onTimerExceeded(const asio::error_code &error);
 
  public:
   AudioManager(std::shared_ptr<DBus::Connection> , asio::io_service &ioService);
@@ -68,8 +76,7 @@ class AudioManager: public IAudioManager {
   void start() override;
   void stop() override;
 
-  //calling requestAudioFocus directly doesn't work on the audio mgr
-  void requestFocus(aasdk::messenger::ChannelId channelId, aasdk::proto::enums::AudioFocusType_Enum aa_type,  aasdk::io::Promise<void>::Pointer promise) override;
+  void requestFocus(aasdk::messenger::ChannelId channelId, aasdk::proto::enums::AudioFocusType_Enum aa_type) override;
 
   void releaseFocus(aasdk::messenger::ChannelId channelId) override;
 

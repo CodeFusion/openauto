@@ -22,48 +22,6 @@
 
 namespace autoapp::service {
 
-AudioTimer::AudioTimer(asio::io_service &ioService) :
-    strand_(ioService), timer_(ioService) {
-
-}
-
-void AudioTimer::onTimerExceeded(const asio::error_code &error) {
-  std::lock_guard<std::mutex> lock(timerMutex);
-  if (promise_ == nullptr) {
-    return;
-  }
-  if(error != asio::error::operation_aborted) {
-    promise_->reject(aasdk::error::Error(aasdk::error::ErrorCode::NONE));
-    promise_.reset();
-  }
-}
-
-void AudioTimer::request(Promise::Pointer promise) {
-  std::lock_guard<std::mutex> lock(timerMutex);
-  if (promise_ != nullptr) {
-    promise_->reject(aasdk::error::Error(aasdk::error::ErrorCode::OPERATION_IN_PROGRESS));
-    timer_.expires_after(std::chrono::milliseconds(delay_));
-    timer_.async_wait(strand_.wrap([this](const asio::error_code &error) { onTimerExceeded(error); }));
-  } else {
-    promise_ = std::move(promise);
-    timer_.expires_after(std::chrono::milliseconds(delay_));
-    timer_.async_wait(strand_.wrap([this](const asio::error_code &error) { onTimerExceeded(error); }));
-  }
-}
-
-void AudioTimer::cancel() {
-  std::lock_guard<std::mutex> lock(timerMutex);
-  promise_->reject(aasdk::error::Error(aasdk::error::ErrorCode::NONE));
-  promise_.reset();
-  timer_.cancel();
-}
-
-void AudioTimer::extend() {
-  std::lock_guard<std::mutex> lock(timerMutex);
-  timer_.expires_after(std::chrono::milliseconds(delay_));
-  timer_.async_wait(strand_.wrap([this](const asio::error_code &error) { onTimerExceeded(error); }));
-}
-
 AudioService::AudioService(asio::io_service &ioService,
                            aasdk::messenger::IMessenger::Pointer messenger,
                            aasdk::messenger::ChannelId channelID,
@@ -73,8 +31,7 @@ AudioService::AudioService(asio::io_service &ioService,
       WriterStrand(ioService),
       audioOutput_(std::move(audioOutput)),
       session_(-1),
-      audioManager(std::move(AudioManager)),
-      timer_(ioService) {
+      audioManager(std::move(AudioManager)){
   channel_ = std::make_shared<aasdk::channel::av::AudioServiceChannel>(strand_, std::move(messenger), channelID);
 }
 
@@ -191,19 +148,6 @@ void AudioService::onAVChannelStartIndication(const aasdk::proto::messages::AVCh
   LOG(INFO) << "[AudioService] start indication"
             << ", channel: " << aasdk::messenger::channelIdToString(channel_->getId())
             << ", session: " << indication.session();
-  if(audioManager->getFocusType(channel_->getId()) == IAudioManager::focusType::TRANSIENT) {
-    auto promise = AudioTimer::Promise::defer(strand_);
-    promise->then(std::function<void(void)>([]() {}),
-                  [this, self = this->shared_from_this()](auto error) {
-                    if (error != aasdk::error::ErrorCode::OPERATION_ABORTED ||
-                        error != aasdk::error::ErrorCode::OPERATION_IN_PROGRESS) {
-                      LOG(ERROR) << "[AndroidAutoEntity] Audio timer exceeded. Channel "
-                                 << aasdk::messenger::channelIdToString(this->channel_->getId());
-                      this->audioManager->releaseFocus(this->channel_->getId());
-                    }
-                  });
-    timer_.request(std::move(promise));
-  }
   session_ = indication.session();
   for(auto &audioOutput: audioOutput_){
     audioOutput->start();
@@ -218,9 +162,6 @@ void AudioService::onAVChannelStopIndication(const aasdk::proto::messages::AVCha
   session_ = -1;
   for(auto &audioOutput: audioOutput_) {
     audioOutput->suspend();
-  }
-  if(audioManager->getFocusType(channel_->getId()) == IAudioManager::focusType::TRANSIENT){
-    timer_.cancel();
   }
   channel_->receive(this->shared_from_this());
 }
@@ -240,11 +181,6 @@ void AudioService::onAVMediaWithTimestampIndication(aasdk::messenger::Timestamp:
       audioOutput->write(timestamp, tempBuffer);
     }
   });
-
-  if(audioManager->getFocusType(channel_->getId()) == IAudioManager::focusType::TRANSIENT){
-    timer_.extend();
-  }
-
 
   aasdk::proto::messages::AVMediaAckIndication indication;
   indication.set_session(session_);

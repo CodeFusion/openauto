@@ -41,7 +41,7 @@ AndroidAutoEntity::AndroidAutoEntity(asio::io_service &ioService,
       serviceList_(std::move(serviceList)),
       pinger_(std::move(pinger)),
       eventHandler_(nullptr),
-      device(std::move(Device)){
+      device(std::move(Device)) {
 }
 
 AndroidAutoEntity::~AndroidAutoEntity() {
@@ -57,12 +57,11 @@ void AndroidAutoEntity::start(IAndroidAutoEntityEventHandler &eventHandler) {
     this->schedulePing();
 
     device->audioManager->registerFocusCallback([this](aasdk::messenger::ChannelId channelId,
-                                                        aasdk::proto::enums::AudioFocusState_Enum focus) {
+                                                       aasdk::proto::enums::AudioFocusState_Enum focus) {
       this->onAudioFocusResponse(channelId,
                                  focus);
     });
     device->start();
-
 
     auto versionRequestPromise = aasdk::channel::SendPromise::defer(strand_);
     versionRequestPromise->then([]() {}, [&](const aasdk::error::Error &error) { onChannelError(error); });
@@ -203,41 +202,29 @@ void AndroidAutoEntity::onAudioFocusRequest(const aasdk::proto::messages::AudioF
   LOG(INFO) << "[AndroidAutoEntity] requested audio focus, type: "
             << aasdk::proto::enums::AudioFocusType_Enum_Name(request.audio_focus_type());
 
+  strand_.context().post([this, request]() {
 //  audioFocusRequest_->request(std::move(promise));
-  aasdk::messenger::ChannelId channelID = aasdk::messenger::ChannelId::NONE;
-  aasdk::proto::enums::AudioFocusState::Enum requestState =  aasdk::proto::enums::AudioFocusState::NONE;
+    aasdk::messenger::ChannelId channelID = aasdk::messenger::ChannelId::NONE;
 
-  switch (request.audio_focus_type()) {
-    case aasdk::proto::enums::AudioFocusType_Enum_NONE:break;
-    case aasdk::proto::enums::AudioFocusType_Enum_GAIN:
-      channelID = aasdk::messenger::ChannelId::MEDIA_AUDIO;
-      requestState = aasdk::proto::enums::AudioFocusState::GAIN;
-      break;
-    case aasdk::proto::enums::AudioFocusType_Enum_GAIN_TRANSIENT:
-    case aasdk::proto::enums::AudioFocusType_Enum_GAIN_TRANSIENT_MAY_DUCK:
-      channelID = aasdk::messenger::ChannelId::SPEECH_AUDIO;
-      requestState = aasdk::proto::enums::AudioFocusState::GAIN_TRANSIENT;
-      break;
-    case aasdk::proto::enums::AudioFocusType_Enum_RELEASE:
-      device->audioManager->releaseFocus(aasdk::messenger::ChannelId::NONE);
-      break;
-  }
-  if(request.audio_focus_type() != aasdk::proto::enums::AudioFocusType_Enum_RELEASE) {
-    auto promise = aasdk::io::Promise<void>::defer(strand_);
-    promise->then([this, self = this->shared_from_this(), channelID, requestState]() {
-                    LOG(DEBUG) << "Audofocus Lambda ran";
-                    this->onAudioFocusResponse(channelID, requestState);
-                  },
-                  [this, self = this->shared_from_this()](auto error) {
-                    if (error != aasdk::error::ErrorCode::OPERATION_ABORTED &&
-                        error != aasdk::error::ErrorCode::OPERATION_IN_PROGRESS) {
-                      LOG(ERROR) << "[AndroidAutoEntity] AudioFocus timer exceeded.";
-                      this->onAudioFocusResponse(aasdk::messenger::ChannelId::NONE,
-                                                 aasdk::proto::enums::AudioFocusState::NONE);
-                    }
-                  });
-    device->audioManager->requestFocus(channelID, request.audio_focus_type(), promise);
-  }
+    switch (request.audio_focus_type()) {
+      case aasdk::proto::enums::AudioFocusType_Enum_NONE:
+        break;
+      case aasdk::proto::enums::AudioFocusType_Enum_GAIN:
+        channelID = aasdk::messenger::ChannelId::MEDIA_AUDIO;
+        break;
+      case aasdk::proto::enums::AudioFocusType_Enum_GAIN_TRANSIENT:
+      case aasdk::proto::enums::AudioFocusType_Enum_GAIN_TRANSIENT_MAY_DUCK:
+        channelID = aasdk::messenger::ChannelId::SPEECH_AUDIO;
+        break;
+      case aasdk::proto::enums::AudioFocusType_Enum_RELEASE:
+        device->audioManager->releaseFocus(aasdk::messenger::ChannelId::NONE);
+        break;
+    }
+    if (request.audio_focus_type() != aasdk::proto::enums::AudioFocusType_Enum_RELEASE) {
+      device->audioManager->requestFocus(channelID, request.audio_focus_type());
+    }
+  });
+
   controlServiceChannel_->receive(this->shared_from_this());
 }
 

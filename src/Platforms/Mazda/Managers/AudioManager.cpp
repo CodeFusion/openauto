@@ -3,18 +3,6 @@
 #include <thread>
 #include <utility>
 
-void AudioManager::onTimerExceeded(const asio::error_code &error) {
-  std::lock_guard<std::mutex> lock(AudioMutex);
-  if (promise_ == nullptr) {
-    return;
-  }
-  if (error == asio::error::operation_aborted){
-    return;
-  }
-  promise_->reject(aasdk::error::Error(aasdk::error::ErrorCode::NONE));
-  promise_.reset();
-}
-
 void AudioManager::onRequestAudioFocusResult(json result, Stream *stream) {
   std::lock_guard<std::mutex> lock(AudioMutex);
   if (result["newFocus"].get<std::string>() == "granted") {
@@ -38,9 +26,6 @@ void AudioManager::onAudioFocusChange(json result, Stream *stream) {
     };
     AudioProxy->Request("audioActive", activeargs.dump());
     updateFocus(stream->channelId, AudioFocusState::LOSS);
-    if(promise_ != nullptr){
-      promise_.reset();
-    }
     LOG(DEBUG) << "Stream " << stream->id << ": " << stream->name << " Focus Lost";
   } else if (focus == "temporarilyLost") {
     stream->focus = false;
@@ -53,16 +38,23 @@ void AudioManager::onAudioFocusChange(json result, Stream *stream) {
     LOG(DEBUG) << "Stream " << stream->id << ": " << stream->name << " Focus Temporarily Lost";
   } else if (focus == "gained") {
     stream->focus = true;
-    if(promise_ != nullptr){
-      promise_->resolve();
-      promise_.reset();
-    }
-    else{
-      if(stream->channelId == aasdk::messenger::ChannelId::MEDIA_AUDIO) {
+    switch (stream->channelId) {
+      case aasdk::messenger::ChannelId::MEDIA_AUDIO:
         updateFocus(stream->channelId, AudioFocusState::GAIN);
-      }
+        break;
+      case aasdk::messenger::ChannelId::SPEECH_AUDIO:
+//            updateFocus(stream->channelId, AudioFocusState::GAIN_TRANSIENT_GUIDANCE_ONLY);
+//            break;
+      case aasdk::messenger::ChannelId::SYSTEM_AUDIO:
+        updateFocus(stream->channelId, AudioFocusState::GAIN_TRANSIENT);
+        break;
+      default:
+        break;
     }
     LOG(DEBUG) << "Stream " << stream->id << ": " << stream->name << " Has Focus " << stream->focus;
+  }
+  if(!workQueue.empty()){
+    doWork();
   }
 }
 
@@ -106,7 +98,7 @@ void AudioManager::RegisterStream(std::string StreamName,
     json regArgs = {
         {"sessionId", SessionID},
         {"streamName", StreamName},
-        { "streamModeName", StreamModeName},
+        {"streamModeName", StreamModeName},
         {"focusType", StreamMode},
         {"streamType", StreamType}
     };
@@ -143,7 +135,7 @@ void AudioManager::populateData() {
          ++it) {
       MazdaDestinations.emplace_back(it.key());
     }
-    for(const auto& streamtype: MazdaDestinations){
+    for (const auto &streamtype : MazdaDestinations) {
       LOG(DEBUG) << "StreamType: " << streamtype;
     }
   }
@@ -161,74 +153,103 @@ void AudioManager::populateData() {
 }
 
 AudioManager::AudioManager(std::shared_ptr<DBus::Connection> session_connection, asio::io_service &ioService)
-    :  dbusConnection(std::move(session_connection)), strand_(ioService), timer_(ioService){
+    : dbusConnection(std::move(session_connection)), strand_(ioService), timer_(ioService) {
 
 }
 
+void AudioManager::doWork() {
+  aasdk::messenger::ChannelId channelId;
+  std::string focus;
+
+  queueLock.lock();
+  channelId = workQueue.front().channelId;
+  focus = workQueue.front().focus;
+  workQueue.pop_front();
+  queueLock.unlock();
+  LOG(DEBUG) << (int)channelId << " " << focus;
+
+  json args = {
+      {"sessionId", streams[channelId]->id},
+      {"requestType", "request"}
+  };
+  LOG(DEBUG) << args;
+  try {
+    auto msg = AudioProxy->create_call_message("Request");
+    msg->set_no_reply();
+    msg << focus;
+    msg << args.dump();
+    AudioProxy->object()->connection().lock()->send(msg);
+//      std::string result = AudioProxy->Request("requestAudioFocus", args.dump());
+//      LOG(DEBUG) << "requestAudioFocus(" << args.dump().c_str() << ")\n" << result.c_str();
+  }
+  catch (DBus::Error &e) {
+    LOG(ERROR) << e.what();
+  }
+}
+
 void AudioManager::requestFocus(aasdk::messenger::ChannelId channelId,
-                                aasdk::proto::enums::AudioFocusType_Enum aa_type,  aasdk::io::Promise<void>::Pointer promise) {
+                                AudioFocusType aa_type) {
   std::lock_guard<std::mutex> lock(AudioMutex);
   LOG(DEBUG) << "requestFocus()";
-  if (promise_ == nullptr) {
-    LOG(DEBUG) << "No current promise";
-    if (streams.count(channelId) > 0) {
-      LOG(DEBUG) << "Stream Exists";
-      if (!streams[channelId]->focus) {
-        LOG(DEBUG) << "Stream Does not already have focus";
-        json args = {
-            {"sessionId", streams[channelId]->id},
-            {"requestType", "request"}
-        };
-        LOG(DEBUG) << args;
-        try {
-          promise_ = std::move(promise);
-          std::string result = AudioProxy->Request("requestAudioFocus", args.dump());
-          LOG(DEBUG) << "requestAudioFocus(" << args.dump().c_str() << ")\n" << result.c_str();
-        }
-        catch (DBus::Error &e) {
-          LOG(ERROR) << e.what();
-        }
-      } else {
-        LOG(DEBUG) << "Stream already had focus";
-        promise->resolve();
+  if (streams.count(channelId) > 0) {
+    LOG(DEBUG) << "Stream Exists";
+    if (!streams[channelId]->focus) {
+      LOG(DEBUG) << "Stream Does not already have focus";
+      queueLock.lock();
+      workQueue.emplace_back(workItem{channelId, "requestAudioFocus"});
+      queueLock.unlock();
+    } else {
+      LOG(DEBUG) << "Stream already had focus";
+      switch (channelId) {
+        case aasdk::messenger::ChannelId::MEDIA_AUDIO:
+          updateFocus(channelId, AudioFocusState::GAIN);
+          break;
+        case aasdk::messenger::ChannelId::SPEECH_AUDIO:
+//            updateFocus(stream->channelId, AudioFocusState::GAIN_TRANSIENT_GUIDANCE_ONLY);
+//            break;
+        case aasdk::messenger::ChannelId::SYSTEM_AUDIO:
+          updateFocus(channelId, AudioFocusState::GAIN_TRANSIENT);
+          break;
+        default:
+          break;
       }
     }
   }
-  else{
-    promise->reject(aasdk::error::Error(aasdk::error::ErrorCode::OPERATION_IN_PROGRESS));
+  if(workQueue.size() == 1){
+    doWork();
   }
 }
 
 void AudioManager::releaseFocus(aasdk::messenger::ChannelId channelId) {
   LOG(INFO) << "releaseFocus()";
   std::lock_guard<std::mutex> lock(AudioMutex);
-  try {
-    if (channelId == aasdk::messenger::ChannelId::NONE) {
-      for (auto &stream : streams) {
-        LOG(DEBUG) << "Channel: " << int(stream.first) << " Stream: " << stream.second->id << " Focus: "
-                   << stream.second->focus;
-        if (stream.second->focus) {
-          json args = {{"sessionId", stream.second->id}};
-          std::string result = AudioProxy->Request("abandonAudioFocus", args.dump());
-          LOG(DEBUG) << "abandonAudioFocus(" << args.dump().c_str() << ")\n" << result.c_str();
-        }
-      }
-    } else {
-      auto &stream = streams[channelId];
-      LOG(DEBUG) << "Channel: " << aasdk::messenger::channelIdToString(channelId) << " Stream: " << stream->id
-                 << " Focus: "
-                 << stream->focus;
-      if (stream->focus) {
-        json args = {{"sessionId", stream->id}};
-        std::string result = AudioProxy->Request("abandonAudioFocus", args.dump());
-        LOG(DEBUG) << "abandonAudioFocus(" << args.dump().c_str() << ")\n" << result.c_str();
+  sleep(1); //Delay to smooth out release, Android Auto doesn't account for latency
+  if (channelId == aasdk::messenger::ChannelId::NONE) {
+    for (auto &stream : streams) {
+      LOG(DEBUG) << "Channel: " << int(stream.first) << " Stream: " << stream.second->id << " Focus: "
+                 << stream.second->focus;
+      if (stream.second->focus) {
+        queueLock.lock();
+        workQueue.emplace_back(workItem{stream.first, "abandonAudioFocus"});
+        queueLock.unlock();
       }
     }
+  } else {
+    auto &stream = streams[channelId];
+    LOG(DEBUG) << "Channel: " << aasdk::messenger::channelIdToString(channelId) << " Stream: " << stream->id
+               << " Focus: "
+               << stream->focus;
+    if (stream->focus) {
+      queueLock.lock();
+      workQueue.emplace_back(workItem{channelId, "abandonAudioFocus"});
+      queueLock.unlock();
+    }
   }
-  catch (DBus::Error &e) {
-    LOG(ERROR) << e.what();
+  if(workQueue.size() == 1){
+    doWork();
   }
 }
+
 
 void AudioManager::onNotify(const std::string &signalName, const std::string &payload) {
   LOG(DEBUG) << "onNotify " << signalName << " " << payload;
@@ -253,8 +274,7 @@ void AudioManager::start() {
   if (std::find(MazdaDestinations.begin(), MazdaDestinations.end(), "AAMedia") == MazdaDestinations.end()) {
     RegisterStream("MLENT", aasdk::messenger::ChannelId::MEDIA_AUDIO, "permanent", "Media", "Media");
     RegisterStream("Navi", aasdk::messenger::ChannelId::SPEECH_AUDIO, "transient", "InfoMix", "InfoMix");
-  }
-  else {
+  } else {
     RegisterStream("AAMedia", aasdk::messenger::ChannelId::MEDIA_AUDIO, "permanent", "AAMedia", "AAMedia");
     RegisterStream("AAGuidance", aasdk::messenger::ChannelId::SPEECH_AUDIO, "transient", "AAGuidance", "AAGuidance");
   }
@@ -298,7 +318,7 @@ void AudioManager::stop() {
   dbusConnection->release_name("com.androidauto");
 }
 IAudioManager::focusType AudioManager::getFocusType(aasdk::messenger::ChannelId channelId) {
-  if(streams[channelId]->mode ==  "permanent"){
+  if (streams[channelId]->mode == "permanent") {
     return IAudioManager::focusType::NORMAL;
   }
   return IAudioManager::focusType::TRANSIENT;

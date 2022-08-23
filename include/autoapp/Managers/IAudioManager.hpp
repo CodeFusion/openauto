@@ -30,7 +30,7 @@ class IAudioManager: public IManager{
   /// Request the given audio focus type for the given channel id
   /// \param channelId AASDK channel ID of affected channel
   /// \param focus type of audio focus requested
-  virtual void requestFocus(aasdk::messenger::ChannelId channelId, aasdk::proto::enums::AudioFocusType_Enum focus, aasdk::io::Promise<void>::Pointer promise) = 0;
+  virtual void requestFocus(aasdk::messenger::ChannelId channelId, aasdk::proto::enums::AudioFocusType_Enum focus) = 0;
 
   /// Release the audio focus for the channel ID provided. Release all if channel id is aasdk::messenger::ChannelID::None
   /// \param channelId AASDK channel ID of affected channel
