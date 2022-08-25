@@ -33,6 +33,7 @@ void BluetoothManager::ConnectionStatusResp(uint32_t found_serviceId, uint32_t c
 }
 
 void BluetoothManager::start() {
+  std::lock_guard<std::mutex> lock(BluetoothMutex);
   LOG(DEBUG) << "Reading BdsConfiguration.xml";
 
   tinyxml2::XMLDocument doc;
@@ -64,7 +65,9 @@ void BluetoothManager::start() {
 }
 
 void BluetoothManager::stop() {
+  std::lock_guard<std::mutex> lock(BluetoothMutex);
   LOG(DEBUG) << "Stopping BluetoothManager";
+  timer.cancel();
   bcaClient.reset();
 }
 
@@ -139,16 +142,20 @@ int BluetoothManager::update_connection_info() {
   return 0;
 }
 void BluetoothManager::aaConnect(bool connected) {
+  std::lock_guard<std::mutex> lock(BluetoothMutex);
   if(connected){
     timer.cancel();
   }
   else{
-    timer.expires_from_now(std::chrono::seconds(1));
-    timer.async_wait([this](const asio::error_code &error) { retryTimer(error); });
+    if(bcaClient != nullptr) {
+      timer.expires_from_now(std::chrono::seconds(1));
+      timer.async_wait([this](const asio::error_code &error) { retryTimer(error); });
+    }
   }
 
 }
 void BluetoothManager::retryTimer(const asio::error_code &error) {
+  std::lock_guard<std::mutex> lock(BluetoothMutex);
   if (error == asio::error::operation_aborted){
     return;
   }

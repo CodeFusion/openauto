@@ -52,6 +52,7 @@ class BluetoothManager : public IBluetoothManager {
   connectionInfo info;
   asio::basic_waitable_timer<std::chrono::steady_clock> timer;
   void retryTimer(const asio::error_code &error);
+  std::mutex BluetoothMutex;
 
 
 };
