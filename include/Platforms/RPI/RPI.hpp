@@ -8,7 +8,8 @@
 #include <Platforms/RPI/Managers/NightManager.hpp>
 #include <Platforms/RPI/Managers/BluetoothManager.hpp>
 #include "autoapp/Configuration/Configuration.hpp"
-
+#include "Platforms/RPI/Managers/BluetoothPairingManager.hpp"
+#include "Platforms/RPI/Managers/NavigationManager.hpp"
 
 
 #include <cstdlib>
@@ -18,18 +19,10 @@
 
 class RPI: public IPlatform{
  public:
-  RPI(autoapp::configuration::IConfiguration::Pointer configuration);
+  explicit RPI(autoapp::configuration::Configuration::Pointer configuration);
 
   void start() override;
-  void stop() overrride;
-
-  IVideoManager::Pointer videoManager;
-  AASignals::Pointer aaSignals;
-
-  IGPSManager::Pointer gpsManager;
-  INightManager::Pointer nightManager;
-  IAudioManager::Pointer audioManager;
-  IBluetoothManager::Pointer bluetoothManager;
+  void stop() override;
 
 };
 
