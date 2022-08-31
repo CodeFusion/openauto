@@ -187,5 +187,9 @@ int main(int argc, char *argv[]) {
   ioService.stop();
   LOG(DEBUG) << "Joining threads";
   std::for_each(threadPool.begin(), threadPool.end(), [](std::thread &thread) { thread.join(); });
+
+  // Shutdown protobuf to shutup valgrind
+  google::protobuf::ShutdownProtobufLibrary();
+
   return 0;
 }
