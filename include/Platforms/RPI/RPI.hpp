@@ -19,7 +19,8 @@
 
 class RPI: public IPlatform{
  public:
-  explicit RPI(autoapp::configuration::Configuration::Pointer configuration);
+  explicit RPI(const autoapp::configuration::Configuration::Pointer &configuration);
+  ~RPI() override;
 
   void start() override;
   void stop() override;
