@@ -58,8 +58,7 @@ void AndroidAutoEntity::start(IAndroidAutoEntityEventHandler &eventHandler) {
 
     device->audioManager->registerFocusCallback([this](aasdk::messenger::ChannelId channelId,
                                                        aasdk::proto::enums::AudioFocusState_Enum focus) {
-      this->onAudioFocusResponse(channelId,
-                                 focus);
+      this->onAudioFocusResponse(channelId, focus);
     });
     device->start();
 
