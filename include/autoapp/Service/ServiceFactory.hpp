@@ -32,9 +32,9 @@ class ServiceFactory : public IServiceFactory {
   ServiceList create(aasdk::messenger::IMessenger::Pointer messenger) override;
 
  private:
-  IService::Pointer createVideoService(aasdk::messenger::IMessenger::Pointer messenger);
-  IService::Pointer createBluetoothService(aasdk::messenger::IMessenger::Pointer messenger);
-  IService::Pointer createInputService(aasdk::messenger::IMessenger::Pointer messenger);
+  IService::Pointer createVideoService(const aasdk::messenger::IMessenger::Pointer& messenger);
+  IService::Pointer createBluetoothService(const aasdk::messenger::IMessenger::Pointer& messenger);
+  IService::Pointer createInputService(const aasdk::messenger::IMessenger::Pointer& messenger);
   void createAudioServices(ServiceList &serviceList, const aasdk::messenger::IMessenger::Pointer &messenger);
 
   asio::io_service &ioService_;

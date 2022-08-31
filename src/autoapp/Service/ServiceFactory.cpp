@@ -53,16 +53,16 @@ ServiceList ServiceFactory::create(aasdk::messenger::IMessenger::Pointer messeng
   return serviceList;
 }
 
-IService::Pointer ServiceFactory::createVideoService(aasdk::messenger::IMessenger::Pointer messenger) {
+IService::Pointer ServiceFactory::createVideoService(const aasdk::messenger::IMessenger::Pointer& messenger) {
   projection::IVideoOutput::Pointer videoOutput(new projection::GSTVideoOutput(ioService_));
   return std::make_shared<VideoService>(ioService_, messenger, std::move(videoOutput), platform->videoManager);
 }
 
-IService::Pointer ServiceFactory::createBluetoothService(aasdk::messenger::IMessenger::Pointer messenger) {
+IService::Pointer ServiceFactory::createBluetoothService(const aasdk::messenger::IMessenger::Pointer& messenger) {
   return std::make_shared<BluetoothService>(ioService_, messenger, std::move(platform->bluetoothPairingManager));
 }
 
-IService::Pointer ServiceFactory::createInputService(aasdk::messenger::IMessenger::Pointer messenger) {
+IService::Pointer ServiceFactory::createInputService(const aasdk::messenger::IMessenger::Pointer& messenger) {
   projection::IInputDevice::Pointer
       inputDevice(std::make_shared<projection::InputDevice>(ioService_, platform->audioManager, platform->videoManager));
 
@@ -74,8 +74,7 @@ void ServiceFactory::createAudioServices(ServiceList &serviceList,
   std::vector<projection::IAudioOutput::Pointer> mediaOutputs;
   auto mediaConfig = configuration_->getAudioConfig().channels["Media"];
   for (auto &output: mediaConfig.outputs){
-    auto audioOutput = std::make_shared<projection::AlsaAudioOutput>(mediaConfig.channels, mediaConfig.rate, output.c_str());
-    mediaOutputs.emplace_back(std::move(audioOutput));
+    mediaOutputs.emplace_back(std::make_shared<projection::AlsaAudioOutput>(mediaConfig.channels, mediaConfig.rate, output.c_str()));
   }
 
   serviceList.emplace_back(std::make_shared<AudioService>(ioService_,
@@ -88,8 +87,7 @@ void ServiceFactory::createAudioServices(ServiceList &serviceList,
   std::vector<projection::IAudioOutput::Pointer> speechOutputs;
   auto speechConfig = configuration_->getAudioConfig().channels["Speech"];
   for (auto &output: speechConfig.outputs){
-    auto audioOutput = std::make_shared<projection::AlsaAudioOutput>(speechConfig.channels, speechConfig.rate, output.c_str());
-    speechOutputs.emplace_back(std::move(audioOutput));
+    speechOutputs.emplace_back(std::make_shared<projection::AlsaAudioOutput>(speechConfig.channels, speechConfig.rate, output.c_str()));
   }
   serviceList.emplace_back(std::make_shared<AudioService>(ioService_,
                                                           messenger,
