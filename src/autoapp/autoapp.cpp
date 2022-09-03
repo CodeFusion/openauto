@@ -110,7 +110,7 @@ int main(int argc, char *argv[]) {
   std::function<std::string(const el::LogMessage *)> timeFormatter = [start_time](const el::LogMessage *) {
     auto current_time = std::chrono::high_resolution_clock::now();
     std::ostringstream out;
-    float_t ts = std::chrono::duration_cast<std::chrono::milliseconds>(current_time - start_time).count() / 1000.00;
+    float ts = std::chrono::duration_cast<std::chrono::milliseconds>(current_time - start_time).count() / 1000.00;
     out << std::fixed << std::setprecision(3) << ts;
     return out.str();
   };
