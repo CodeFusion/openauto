@@ -39,7 +39,7 @@ using ThreadPool = std::vector<std::thread>;
 
 class usbThreadPool {
  public:
-  explicit usbThreadPool(libusb_context *usbContext): usbContext_(usbContext) {
+  explicit usbThreadPool(libusb_context *usbContext) : usbContext_(usbContext) {
     for (unsigned i = 0; i < 4; ++i) {
       threads.emplace_back(&usbThreadPool::USBWorkers, this);
     }
