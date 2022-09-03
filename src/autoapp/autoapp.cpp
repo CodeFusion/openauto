@@ -18,7 +18,6 @@
 
 #include <thread>
 
-
 #include <aasdk/USB/USBHub.hpp>
 #include <aasdk/USB/ConnectedAccessoriesEnumerator.hpp>
 #include <aasdk/USB/AccessoryModeQueryChainFactory.hpp>
@@ -95,6 +94,49 @@ void signalHandler(int signum) {
   }
 }
 
+void start_aa(asio::io_service &ioService,
+              const autoapp::configuration::Configuration::Pointer &configuration,
+              IPlatform::Pointer device) {
+  libusb_context *usbContext;
+  if (libusb_init(&usbContext) != 0) {
+    LOG(ERROR) << "[OpenAuto] libusb init failed.";
+    return;
+  }
+  usbThreadPool usb_thread_pool(usbContext);
+
+  aasdk::tcp::TCPWrapper tcpWrapper;
+
+  aasdk::usb::USBWrapper usbWrapper(usbContext);
+  aasdk::usb::AccessoryModeQueryFactory queryFactory(usbWrapper, ioService);
+  aasdk::usb::AccessoryModeQueryChainFactory queryChainFactory(usbWrapper, ioService, queryFactory);
+  autoapp::service::ServiceFactory serviceFactory(ioService, configuration, device);
+  autoapp::service::AndroidAutoEntityFactory
+      androidAutoEntityFactory(ioService, configuration, serviceFactory, device);
+  auto usbHub(std::make_shared<aasdk::usb::USBHub>(usbWrapper, ioService, queryChainFactory));
+  auto connectedAccessoriesEnumerator
+      (std::make_shared<aasdk::usb::ConnectedAccessoriesEnumerator>(usbWrapper, ioService, queryChainFactory));
+  auto app = std::make_shared<autoapp::App>(ioService,
+                                            usbWrapper,
+                                            tcpWrapper,
+                                            androidAutoEntityFactory,
+                                            std::move(usbHub),
+                                            std::move(connectedAccessoriesEnumerator),
+                                            configuration->getWifiConfig()->port);
+
+  app->waitForUSBDevice();
+  device->bluetoothManager->start();
+
+  while (running) {
+    sleep(1);
+  }
+
+  device->bluetoothManager->stop();
+
+  LOG(DEBUG) << "Calling app->stop()";
+  app->stop();
+  sleep(10);
+}
+
 int main(int argc, char *argv[]) {
   auto start_time = std::chrono::high_resolution_clock::now();
 
@@ -128,17 +170,10 @@ int main(int argc, char *argv[]) {
   signal(SIGINT, signalHandler);
   signal(SIGTERM, signalHandler);
   signal(SIGPIPE, SIG_IGN);
-  libusb_context *usbContext;
-  if (libusb_init(&usbContext) != 0) {
-    LOG(ERROR) << "[OpenAuto] libusb init failed.";
-    return 1;
-  }
-
 
   asio::io_service ioService;
   asio::io_service::work work(ioService);
   std::vector<std::thread> threadPool;
-  usbThreadPool usb_thread_pool(usbContext);
   startIOServiceWorkers(ioService, threadPool);
 
   IPlatform::Pointer device;
@@ -150,39 +185,8 @@ int main(int argc, char *argv[]) {
   device = std::make_shared<RPI>(configuration);
 #endif
 
-  aasdk::tcp::TCPWrapper tcpWrapper;
+  start_aa(ioService, configuration, device);
 
-  aasdk::usb::USBWrapper usbWrapper(usbContext);
-  aasdk::usb::AccessoryModeQueryFactory queryFactory(usbWrapper, ioService);
-  aasdk::usb::AccessoryModeQueryChainFactory queryChainFactory(usbWrapper, ioService, queryFactory);
-  autoapp::service::ServiceFactory serviceFactory(ioService, configuration, device);
-  autoapp::service::AndroidAutoEntityFactory
-      androidAutoEntityFactory(ioService, configuration, serviceFactory, device);
-  auto usbHub(std::make_shared<aasdk::usb::USBHub>(usbWrapper, ioService, queryChainFactory));
-  auto connectedAccessoriesEnumerator
-      (std::make_shared<aasdk::usb::ConnectedAccessoriesEnumerator>(usbWrapper, ioService, queryChainFactory));
-  auto app = std::make_shared<autoapp::App>(ioService,
-                                            usbWrapper,
-                                            tcpWrapper,
-                                            androidAutoEntityFactory,
-                                            std::move(usbHub),
-                                            std::move(connectedAccessoriesEnumerator),
-                                            configuration->getWifiConfig()->port);
-
-  app->waitForUSBDevice();
-
-  device->bluetoothManager->start();
-
-  while (running) {
-    sleep(1);
-  }
-
-  device->bluetoothManager->stop();
-  device->stop();
-  sleep(2);
-
-  LOG(DEBUG) << "Calling app->stop()";
-  app->stop();
   LOG(DEBUG) << "Stopping ioService";
   ioService.stop();
   LOG(DEBUG) << "Joining threads";
